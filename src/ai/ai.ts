@@ -78,9 +78,9 @@ function simulate(game: Game, rotation: number, px: number, w: typeof WEIGHTS.no
     if (y >= 0 && y < g.h && x >= 0 && x < g.w) g.setElement(x, y, c.element);
   }
   // 计算可消除行数（不做完整反应模拟，AI 只看几何）
+  // 与引擎一致：整行消除后上方下移，不做逐列重力
   const rows = g.fullRows();
   if (rows.length) g.removeRows(rows);
-  g.applyGravity();
   return evaluate(g, rows.length, w);
 }
 

@@ -24,6 +24,9 @@ export class Battle {
   raf = 0;
   busy = false; // AI 回合锁
   log: string[] = [];
+  fallTimer?: ReturnType<typeof setInterval>;
+  fallMs = 800; // 自动下落间隔
+  lockPending = false; // 落地缓冲：再过一拍才锁定，期间可微调
 
   constructor(root: HTMLElement, opts: BattleOpts) {
     this.root = root;
@@ -38,6 +41,28 @@ export class Battle {
     this.build();
     this.bindKeys();
     this.loop();
+    this.startFall();
+  }
+
+  private startFall(): void {
+    this.fallTimer = setInterval(() => this.fallTick(), this.fallMs);
+  }
+
+  // 自动下落一格；到底后给一拍缓冲，仍不能下落则锁定
+  private fallTick(): void {
+    if (this.game.gameOver || this.busy) return;
+    if (this.game.current !== "A" || !this.game.active) return;
+    const moved = this.game.step();
+    if (!moved) {
+      if (this.lockPending) {
+        this.lockPending = false;
+        this.humanCommit();
+      } else {
+        this.lockPending = true;
+      }
+    } else {
+      this.lockPending = false;
+    }
   }
 
   private build(): void {
@@ -139,6 +164,7 @@ export class Battle {
   }
 
   private humanCommit(): void {
+    this.lockPending = false;
     const before = this.game.players.A.score;
     const res = this.game.commitTurn();
     const gained = this.game.players.A.score - before;
@@ -265,6 +291,7 @@ export class Battle {
 
   destroy(): void {
     cancelAnimationFrame(this.raf);
+    if (this.fallTimer) clearInterval(this.fallTimer);
     if (this._keyHandler) window.removeEventListener("keydown", this._keyHandler);
   }
 }
