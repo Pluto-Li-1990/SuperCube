@@ -1,0 +1,20 @@
+{
+  "name": "supercube-web",
+  "version": "0.1.0",
+  "description": "SuperCube - 元素俄罗斯方块 PVP (Web/TS MVP)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.2",
+    "vitest": "^2.0.5"
+  }
+}
