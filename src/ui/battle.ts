@@ -4,6 +4,7 @@ import { aiPlayTurn, AIDifficulty } from "../ai/ai";
 import { drawGrid, drawPieceCells, DrawOpts } from "./render";
 import { WEATHER_ICON, ELEMENT_COLORS } from "./colors";
 import { ELEMENT_GLYPH } from "./colors";
+import { settings } from "./settings";
 
 export interface BattleOpts {
   mode: GameMode;
@@ -25,7 +26,6 @@ export class Battle {
   busy = false; // AI 回合锁
   log: string[] = [];
   fallTimer?: ReturnType<typeof setInterval>;
-  fallMs = 800; // 自动下落间隔
   lockPending = false; // 落地缓冲：再过一拍才锁定，期间可微调
 
   constructor(root: HTMLElement, opts: BattleOpts) {
@@ -45,7 +45,7 @@ export class Battle {
   }
 
   private startFall(): void {
-    this.fallTimer = setInterval(() => this.fallTick(), this.fallMs);
+    this.fallTimer = setInterval(() => this.fallTick(), settings.fallMs);
   }
 
   // 自动下落一格；到底后给一拍缓冲，仍不能下落则锁定
@@ -243,7 +243,7 @@ export class Battle {
     drawGrid(this.ctx, this.game.grid, opts);
     // ghost + active
     if (this.game.active && this.game.current === "A") {
-      drawPieceCells(this.ctx, this.game.ghostCells(), opts, 0.18);
+      if (settings.ghost) drawPieceCells(this.ctx, this.game.ghostCells(), opts, 0.18);
       const abs = this.game.active.cells.map((c) => ({
         x: this.game.active!.px + c.x,
         y: this.game.active!.py + c.y,
