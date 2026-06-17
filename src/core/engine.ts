@@ -103,10 +103,28 @@ export class Game {
   }
 
   // 生成新活动棋子（顶部居中）
+  // 加权随机元素（标准棋子出生时赋元素，确定性来自 this.rng）
+  private rollElement(): Element {
+    const r = this.rng.int(100);
+    if (r < 30) return Element.Earth;
+    if (r < 46) return Element.Wood;
+    if (r < 60) return Element.Water;
+    if (r < 72) return Element.Fire;
+    if (r < 84) return Element.Metal;
+    if (r < 92) return Element.Ice;
+    if (r < 97) return Element.Sticky;
+    return Element.Life;
+  }
+
   spawn(): void {
     const p = this.players[this.current];
     const def = this.drawPiece(p);
-    const cells = normalizePiece(def.cells.map((c) => ({ ...c })));
+    let cells = normalizePiece(def.cells.map((c) => ({ ...c })));
+    // 标准棋子赋随机元素；自定义棋子保留设计的元素
+    if (!def.custom) {
+      const el = this.rollElement();
+      cells = cells.map((c) => ({ ...c, element: el }));
+    }
     const { w } = pieceBounds(cells);
     const px = Math.floor((this.grid.w - w) / 2);
     const py = 0;
@@ -191,17 +209,13 @@ export class Game {
     this.active = null;
     this.turn += 1;
 
-    // 冰滑动（落地后）
-    this.applyIceSlide();
-
     // 天气推进
     this.weather.tick();
 
     // 化学反应结算
     const events = resolveReactions(this.grid, this.weather.current, this.rng);
 
-    // 反应后重力 + 连锁消除
-    this.grid.applyGravity();
+    // 连锁消除（整行消除后上方下移，不做逐列重力，棋子保持原位形成地形）
     const { lines, scored } = this.resolveClears(placedOwner);
 
     // 生命方块达成判定
@@ -232,36 +246,9 @@ export class Game {
       totalLines += rows.length;
       this.players[scorer].score += gained;
       this.grid.removeRows(rows);
-      this.grid.applyGravity();
       cascade++;
     }
     return { lines: totalLines, scored: totalScore };
-  }
-
-  // 冰块触底后随机左右滑到底（简化：对静止的孤立冰格做一次水平滑动）
-  private applyIceSlide(): void {
-    for (let y = this.grid.h - 1; y >= 0; y--) {
-      for (let x = 0; x < this.grid.w; x++) {
-        const c = this.grid.get(x, y);
-        if (c.element !== Element.Ice || c.charged) continue;
-        // 仅当下方为底或占用（已触底）才滑
-        const restOnFloor = y === this.grid.h - 1 || !isEmpty(this.grid.get(x, y + 1));
-        if (!restOnFloor) continue;
-        const dir = this.rng.chance(0.5) ? -1 : 1;
-        let nx = x;
-        while (
-          this.grid.inBounds(nx + dir, y) &&
-          isEmpty(this.grid.get(nx + dir, y)) &&
-          (y === this.grid.h - 1 || !isEmpty(this.grid.get(nx + dir, y + 1)))
-        ) {
-          nx += dir;
-        }
-        if (nx !== x) {
-          this.grid.set(nx, y, c);
-          this.grid.set(x, y, makeCell(Element.Empty));
-        }
-      }
-    }
   }
 
   // 远古生命：5 个生命方块存活 LIFE_SURVIVE_TURNS 回合 → 清屏 + 海量积分
