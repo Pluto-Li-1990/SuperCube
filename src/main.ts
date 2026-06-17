@@ -1,6 +1,8 @@
 import "./style.css";
 import { Battle } from "./ui/battle";
 import { Workshop } from "./ui/workshop";
+import { LoadoutScreen } from "./ui/loadout";
+import { buildLoadoutBags } from "./core/loadout";
 import { GameMode } from "./core/engine";
 import { AIDifficulty } from "./ai/ai";
 import { PieceDef } from "./core/types";
@@ -55,7 +57,7 @@ function showLobby(): void {
     <p class="lobby-foot">MVP 原型 · 键盘 ←→↑↓ 空格 / 触屏按钮操作</p>`;
   app.append(wrap);
 
-  document.getElementById("m-pvp")!.onclick = () => startBattle("shared-turn");
+  document.getElementById("m-pvp")!.onclick = () => startLoadout("shared-turn");
   document.getElementById("m-survival")!.onclick = () => startBattle("survival");
   document.getElementById("m-workshop")!.onclick = () => showWorkshop();
   wrap.querySelectorAll(".lobby-diff button").forEach((b) => {
@@ -67,12 +69,26 @@ function showLobby(): void {
   });
 }
 
-function startBattle(mode: GameMode): void {
+function startLoadout(mode: GameMode): void {
+  clear();
+  new LoadoutScreen(
+    app,
+    playerBag,
+    (result) => {
+      const { selfExtra, oppExtra } = buildLoadoutBags(playerBag, result.choice);
+      startBattle(mode, selfExtra, oppExtra);
+    },
+    showLobby,
+  );
+}
+
+function startBattle(mode: GameMode, playerBagOverride?: PieceDef[], aiBag?: PieceDef[]): void {
   clear();
   battle = new Battle(app, {
     mode,
     difficulty,
-    playerBag,
+    playerBag: playerBagOverride ?? playerBag,
+    aiBag,
     onExit: showLobby,
   });
 }
