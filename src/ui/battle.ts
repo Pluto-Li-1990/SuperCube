@@ -9,6 +9,7 @@ export interface BattleOpts {
   mode: GameMode;
   difficulty: AIDifficulty;
   playerBag: PieceDef[];
+  aiBag?: PieceDef[]; // Loadout Debuff：强塞进对手掉落池的棋子
   seed?: number;
   onExit: () => void;
 }
@@ -32,6 +33,7 @@ export class Battle {
       mode: opts.mode,
       aiPlayer: "B",
       customBagA: opts.playerBag,
+      customBagB: opts.aiBag,
     });
     this.build();
     this.bindKeys();
@@ -194,6 +196,7 @@ export class Battle {
         mode: this.opts.mode,
         aiPlayer: "B",
         customBagA: this.opts.playerBag,
+        customBagB: this.opts.aiBag,
       });
       this.busy = false;
       this.log = [];
