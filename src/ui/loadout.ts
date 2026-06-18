@@ -89,7 +89,8 @@ export class LoadoutScreen {
       selfList.append(this.optionCard(p, "self"));
     });
     const oppList = wrap.querySelector("#lo-opp")!;
-    presetDebuffPieces().forEach((p) => {
+    // 对手 Debuff 可选：自己工坊设计的棋子 + 预设刁钻棋子
+    [...this.shelf, ...presetDebuffPieces()].forEach((p) => {
       oppList.append(this.optionCard(p, "opp"));
     });
 
