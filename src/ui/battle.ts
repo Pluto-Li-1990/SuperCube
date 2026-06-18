@@ -3,7 +3,7 @@ import { PieceDef, WEATHER_NAMES, WEATHER_DESC, ELEMENT_NAMES } from "../core/ty
 import { aiPlayTurn, AIDifficulty } from "../ai/ai";
 import { drawGrid, drawPieceCells, DrawOpts } from "./render";
 import { WEATHER_ICON, ELEMENT_COLORS } from "./colors";
-import { ELEMENT_GLYPH } from "./colors";
+import { settings } from "./settings";
 
 export interface BattleOpts {
   mode: GameMode;
@@ -25,7 +25,6 @@ export class Battle {
   busy = false; // AI 回合锁
   log: string[] = [];
   fallTimer?: ReturnType<typeof setInterval>;
-  fallMs = 800; // 自动下落间隔
   lockPending = false; // 落地缓冲：再过一拍才锁定，期间可微调
 
   constructor(root: HTMLElement, opts: BattleOpts) {
@@ -45,7 +44,7 @@ export class Battle {
   }
 
   private startFall(): void {
-    this.fallTimer = setInterval(() => this.fallTick(), this.fallMs);
+    this.fallTimer = setInterval(() => this.fallTick(), settings.fallMs);
   }
 
   // 自动下落一格；到底后给一拍缓冲，仍不能下落则锁定
@@ -78,25 +77,33 @@ export class Battle {
       <div class="mode-badge">${modeName(this.opts.mode)}</div>`;
     wrap.append(top);
 
-    // 中部：A 面板 | 棋盘 | B 面板
+    // 双方信息一排（棋盘上方，竖屏友好）
+    const players = document.createElement("div");
+    players.className = "players-row";
+    players.innerHTML = `
+      <div class="ppanel" id="panel-A"></div>
+      <div class="ppanel" id="panel-B"></div>`;
+    wrap.append(players);
+
+    // 棋盘
     const mid = document.createElement("div");
     mid.className = "battle-mid";
-    mid.innerHTML = `
-      <div class="ppanel" id="panel-A"></div>
-      <div class="board-col">
-        <canvas id="board-canvas"></canvas>
-      </div>
-      <div class="ppanel" id="panel-B"></div>`;
+    mid.innerHTML = `<div class="board-col"><canvas id="board-canvas"></canvas></div>`;
     wrap.append(mid);
 
-    // 底部：触控按钮 + 日志
+    // 手势提示
+    const hint = document.createElement("div");
+    hint.className = "gesture-hint";
+    hint.textContent = "拖动棋子左右移动 · 轻点旋转 · 向下滑落子";
+    wrap.append(hint);
+
+    // 底部：触控按钮（备用）+ 日志
     const ctrl = document.createElement("div");
     ctrl.className = "battle-ctrl";
     ctrl.innerHTML = `
       <button class="ctrl-btn" data-act="left">◀</button>
       <button class="ctrl-btn" data-act="rotate">⟳</button>
       <button class="ctrl-btn" data-act="right">▶</button>
-      <button class="ctrl-btn" data-act="down">▼</button>
       <button class="ctrl-btn drop" data-act="drop">落子 ⤓</button>`;
     wrap.append(ctrl);
 
@@ -107,10 +114,15 @@ export class Battle {
 
     this.root.append(wrap);
 
+    // 响应式格子尺寸：竖屏占满宽度
+    const avail = Math.min(window.innerWidth, 460) - 24;
+    this.cell = Math.max(18, Math.min(34, Math.floor(avail / this.game.grid.w)));
+
     this.canvas = document.getElementById("board-canvas") as HTMLCanvasElement;
     this.canvas.width = this.game.grid.w * this.cell;
     this.canvas.height = this.game.grid.h * this.cell;
     this.ctx = this.canvas.getContext("2d")!;
+    this.bindTouch();
 
     document.getElementById("b-exit")!.onclick = () => {
       cancelAnimationFrame(this.raf);
@@ -119,6 +131,63 @@ export class Battle {
     ctrl.querySelectorAll(".ctrl-btn").forEach((b) => {
       (b as HTMLElement).onclick = () => this.act((b as HTMLElement).dataset.act!);
     });
+  }
+
+  // ===== 直接拖拽 + 手势 =====
+  private touch = { active: false, sx: 0, sy: 0, lx: 0, ly: 0, startPx: 0, lock: "" as "" | "h" | "v", t0: 0 };
+
+  private bindTouch(): void {
+    const c = this.canvas;
+    c.addEventListener("touchstart", (e) => this.onTouchStart(e), { passive: false });
+    c.addEventListener("touchmove", (e) => this.onTouchMove(e), { passive: false });
+    c.addEventListener("touchend", (e) => this.onTouchEnd(e), { passive: false });
+  }
+
+  private canDrive(): boolean {
+    return !this.game.gameOver && !this.busy && this.game.current === "A" && !!this.game.active;
+  }
+
+  private onTouchStart(e: TouchEvent): void {
+    if (!this.canDrive()) return;
+    const t = e.touches[0];
+    this.touch = {
+      active: true, sx: t.clientX, sy: t.clientY, lx: t.clientX, ly: t.clientY,
+      startPx: this.game.active!.px, lock: "", t0: performance.now(),
+    };
+  }
+
+  private onTouchMove(e: TouchEvent): void {
+    if (!this.touch.active || !this.canDrive()) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    this.touch.lx = t.clientX;
+    this.touch.ly = t.clientY;
+    const dx = t.clientX - this.touch.sx;
+    const dy = t.clientY - this.touch.sy;
+    if (!this.touch.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      this.touch.lock = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    }
+    if (this.touch.lock === "h") {
+      const rect = this.canvas.getBoundingClientRect();
+      const cellPx = rect.width / this.game.grid.w;
+      const desired = this.touch.startPx + Math.round(dx / cellPx);
+      while (this.game.active!.px < desired && this.game.move(1)) { /* 右移 */ }
+      while (this.game.active!.px > desired && this.game.move(-1)) { /* 左移 */ }
+    }
+  }
+
+  private onTouchEnd(_e: TouchEvent): void {
+    if (!this.touch.active) return;
+    this.touch.active = false;
+    if (!this.canDrive()) return;
+    const dt = performance.now() - this.touch.t0;
+    const dx = this.touch.lx - this.touch.sx;
+    const dy = this.touch.ly - this.touch.sy;
+    if (this.touch.lock === "v" && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+      this.humanCommit(); // 向下滑 → 硬降落子
+    } else if (!this.touch.lock && dt < 300) {
+      this.game.rotate(); // 轻点 → 旋转
+    }
   }
 
   private bindKeys(): void {
@@ -243,7 +312,7 @@ export class Battle {
     drawGrid(this.ctx, this.game.grid, opts);
     // ghost + active
     if (this.game.active && this.game.current === "A") {
-      drawPieceCells(this.ctx, this.game.ghostCells(), opts, 0.18);
+      if (settings.ghost) drawPieceCells(this.ctx, this.game.ghostCells(), opts, 0.18);
       const abs = this.game.active.cells.map((c) => ({
         x: this.game.active!.px + c.x,
         y: this.game.active!.py + c.y,
@@ -270,12 +339,12 @@ export class Battle {
       const next = this.game.peekNext(id);
       el.className = `ppanel ${active ? "active" : ""} side-${id}`;
       el.innerHTML = `
-        <div class="pavatar">${id === "A" ? "🧑" : "🤖"}</div>
-        <div class="pname">${id === "A" ? "你" : "AI"} ${active ? "<span class='turn-dot'>●</span>" : ""}</div>
-        <div class="pscore">${p.score}</div>
-        <div class="plabel">分数</div>
-        <div class="next-box">${miniPiece(next)}</div>
-        <div class="plabel">Next</div>`;
+        <div class="p-id">
+          <span class="pavatar">${id === "A" ? "🧑" : "🤖"}</span>
+          <span class="pname">${id === "A" ? "你" : "AI"}${active ? " <span class='turn-dot'>●</span>" : ""}</span>
+        </div>
+        <div class="p-score-wrap"><div class="pscore">${p.score}</div><div class="plabel">分</div></div>
+        <div class="p-next"><div class="next-box">${miniPiece(next)}</div><div class="plabel">Next</div></div>`;
     }
   }
 
@@ -309,9 +378,8 @@ function miniPiece(p: PieceDef): string {
     for (let x = 0; x < 4; x++) {
       const el = map.get(`${x},${y}`);
       const color = el ? ELEMENT_COLORS[el as keyof typeof ELEMENT_COLORS] : "transparent";
-      const g = el ? ELEMENT_GLYPH[el as keyof typeof ELEMENT_GLYPH] : "";
       grid.push(
-        `<i style="background:${color}" title="${el ? ELEMENT_NAMES[el as keyof typeof ELEMENT_NAMES] : ""}">${g}</i>`,
+        `<i style="background:${color}" title="${el ? ELEMENT_NAMES[el as keyof typeof ELEMENT_NAMES] : ""}"></i>`,
       );
     }
   return `<div class="mini4">${grid.join("")}</div>`;

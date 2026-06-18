@@ -2,6 +2,7 @@ import "./style.css";
 import { Battle } from "./ui/battle";
 import { Workshop } from "./ui/workshop";
 import { LoadoutScreen } from "./ui/loadout";
+import { SettingsScreen } from "./ui/settings";
 import { buildLoadoutBags } from "./core/loadout";
 import { GameMode } from "./core/engine";
 import { AIDifficulty } from "./ai/ai";
@@ -47,6 +48,9 @@ function showLobby(): void {
       <button class="menu-card" id="m-workshop">
         <span class="mc-icon">⚒️</span><span class="mc-title">源力工坊</span>
         <span class="mc-sub">设计自定义棋子</span></button>
+      <button class="menu-card" id="m-settings">
+        <span class="mc-icon">⚙️</span><span class="mc-title">系统设置</span>
+        <span class="mc-sub">虚影提示 · 下落速度</span></button>
     </div>
     <div class="lobby-diff">
       AI 难度：
@@ -60,6 +64,10 @@ function showLobby(): void {
   document.getElementById("m-pvp")!.onclick = () => startLoadout("shared-turn");
   document.getElementById("m-survival")!.onclick = () => startBattle("survival");
   document.getElementById("m-workshop")!.onclick = () => showWorkshop();
+  document.getElementById("m-settings")!.onclick = () => {
+    clear();
+    new SettingsScreen(app, showLobby);
+  };
   wrap.querySelectorAll(".lobby-diff button").forEach((b) => {
     (b as HTMLElement).onclick = () => {
       difficulty = (b as HTMLElement).dataset.d as AIDifficulty;

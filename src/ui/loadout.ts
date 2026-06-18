@@ -5,7 +5,7 @@ import {
   LoadoutChoice,
   LOADOUT_SECONDS,
 } from "../core/loadout";
-import { ELEMENT_COLORS, ELEMENT_GLYPH } from "./colors";
+import { ELEMENT_COLORS } from "./colors";
 
 // 渲染一枚棋子为 4x4 小色块网格
 function miniPiece(p: PieceDef): HTMLElement {
@@ -19,7 +19,6 @@ function miniPiece(p: PieceDef): HTMLElement {
       const i = document.createElement("i");
       if (e !== undefined) {
         i.style.background = ELEMENT_COLORS[e];
-        i.textContent = ELEMENT_GLYPH[e] || "";
         i.title = ELEMENT_NAMES[e];
       }
       el.append(i);
