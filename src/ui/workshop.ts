@@ -1,6 +1,6 @@
 import { Element, ELEMENT_NAMES, PLAYABLE_ELEMENTS, PieceCellDef, PieceDef } from "../core/types";
 import { validateCustomPiece, makeCustomPiece, normalizePiece } from "../core/pieces";
-import { ELEMENT_COLORS, ELEMENT_GLYPH } from "./colors";
+import { ELEMENT_COLORS } from "./colors";
 import { drawCellBlock } from "./render";
 
 const MAX_SHELF = 9;
@@ -83,7 +83,7 @@ export class Workshop {
       swatch.className = "ws-swatch";
       swatch.style.background = ELEMENT_COLORS[el];
       swatch.title = ELEMENT_NAMES[el];
-      swatch.textContent = ELEMENT_GLYPH[el] || ELEMENT_NAMES[el][0];
+      swatch.textContent = ELEMENT_NAMES[el][0];
       swatch.onclick = () => {
         this.selected = el;
         this.refreshSwatches(pal);
