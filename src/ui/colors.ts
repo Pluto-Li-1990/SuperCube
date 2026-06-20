@@ -1,28 +1,16 @@
 import { Element, Weather } from "../core/types";
 
-// 元素配色（霓虹方块风）
+// 元素配色（精炼现代调色板）
 export const ELEMENT_COLORS: Record<Element, string> = {
   [Element.Empty]: "#11131a",
-  [Element.Earth]: "#8a7253", // 砖土
-  [Element.Fire]: "#ff5a36", // 火
-  [Element.Water]: "#36a3ff", // 水
-  [Element.Wood]: "#4caf50", // 木
-  [Element.Metal]: "#b8c2cc", // 金属
-  [Element.Ice]: "#a7e8ff", // 冰
-  [Element.Sticky]: "#c77dff", // 粘粘
-  [Element.Life]: "#ffd23f", // 生命
-};
-
-export const ELEMENT_GLYPH: Record<Element, string> = {
-  [Element.Empty]: "",
-  [Element.Earth]: "",
-  [Element.Fire]: "🔥",
-  [Element.Water]: "💧",
-  [Element.Wood]: "🌳",
-  [Element.Metal]: "⚙",
-  [Element.Ice]: "❄",
-  [Element.Sticky]: "🟣",
-  [Element.Life]: "✦",
+  [Element.Earth]: "#a98e6b", // 砖土
+  [Element.Fire]: "#ff6b45", // 火
+  [Element.Water]: "#3fa9f5", // 水
+  [Element.Wood]: "#5bbf6a", // 木
+  [Element.Metal]: "#aeb7c2", // 金属
+  [Element.Ice]: "#9fdcf0", // 冰
+  [Element.Sticky]: "#bd7be6", // 粘粘
+  [Element.Life]: "#ffcf4d", // 生命
 };
 
 export const WEATHER_BG: Record<Weather, [string, string]> = {

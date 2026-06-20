@@ -4,3 +4,8 @@ dist/
 .DS_Store
 vite.config.ts.timestamp-*
 *.timestamp-*.mjs
+style_A_gem.png
+style_B_flat.png
+style_C_neon.png
+element_swatches.png
+elements_montage.png
