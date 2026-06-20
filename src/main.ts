@@ -3,6 +3,7 @@ import { Battle } from "./ui/battle";
 import { Workshop } from "./ui/workshop";
 import { LoadoutScreen } from "./ui/loadout";
 import { SettingsScreen } from "./ui/settings";
+import { loadElementArt } from "./ui/elementsArt";
 import { buildLoadoutBags } from "./core/loadout";
 import { GameMode } from "./core/engine";
 import { AIDifficulty } from "./ai/ai";
@@ -121,4 +122,5 @@ function showWorkshop(): void {
   }
 }
 
+loadElementArt();
 showLobby();

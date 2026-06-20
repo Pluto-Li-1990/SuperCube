@@ -1,6 +1,7 @@
 import { Grid } from "../core/grid";
 import { Cell, Element, isEmpty } from "../core/types";
 import { ELEMENT_COLORS, lighten } from "./colors";
+import { elementImages, imgReady } from "./elementsArt";
 
 export interface DrawOpts {
   ox: number;
@@ -9,7 +10,6 @@ export interface DrawOpts {
 }
 
 function shade(hex: string, amt: number): string {
-  // amt<0 变暗，amt>0 变亮
   if (amt >= 0) return lighten(hex, amt);
   const n = parseInt(hex.slice(1), 16);
   let r = (n >> 16) & 255,
@@ -40,155 +40,110 @@ function roundRect(
   ctx.closePath();
 }
 
-// ===== 每种元素的程序化纹理 =====
-function drawTexture(
+// ===== 元素极简线性图标（居中绘制于 s×s 区域）=====
+function drawIcon(
   ctx: CanvasRenderingContext2D,
   el: Element,
   x: number,
   y: number,
   s: number,
+  color: string,
 ): void {
-  const base = ELEMENT_COLORS[el];
   ctx.save();
-  // 用圆角裁剪，纹理不溢出
-  roundRect(ctx, x + 1, y + 1, s - 2, s - 2, Math.max(2, s * 0.16));
-  ctx.clip();
-  ctx.lineWidth = Math.max(1, s * 0.05);
-
+  ctx.translate(x + s / 2, y + s / 2);
+  const u = s * 0.5;
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = s * 0.07;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
   switch (el) {
-    case Element.Earth: {
-      // 砖墙：错缝砖块
-      ctx.strokeStyle = shade(base, -0.28);
-      const bh = s / 2;
+    case Element.Fire:
       ctx.beginPath();
-      // 中间横缝
-      ctx.moveTo(x, y + bh);
-      ctx.lineTo(x + s, y + bh);
-      // 上排竖缝（居中）
-      ctx.moveTo(x + s * 0.5, y);
-      ctx.lineTo(x + s * 0.5, y + bh);
-      // 下排竖缝（错半砖）
-      ctx.moveTo(x + s * 0.25, y + bh);
-      ctx.lineTo(x + s * 0.25, y + s);
-      ctx.moveTo(x + s * 0.75, y + bh);
-      ctx.lineTo(x + s * 0.75, y + s);
+      ctx.moveTo(0, -u * 0.55);
+      ctx.quadraticCurveTo(u * 0.5, 0, 0, u * 0.55);
+      ctx.quadraticCurveTo(-u * 0.5, 0, 0, -u * 0.55);
+      ctx.fill();
+      break;
+    case Element.Water:
+      ctx.beginPath();
+      ctx.moveTo(0, -u * 0.6);
+      ctx.quadraticCurveTo(u * 0.55, u * 0.1, 0, u * 0.55);
+      ctx.quadraticCurveTo(-u * 0.55, u * 0.1, 0, -u * 0.6);
+      ctx.fill();
+      break;
+    case Element.Wood:
+      ctx.beginPath();
+      ctx.moveTo(0, u * 0.55);
+      ctx.lineTo(0, -u * 0.2);
       ctx.stroke();
-      break;
-    }
-    case Element.Fire: {
-      // 火焰：上亮下暗渐变 + 舌焰
-      const g = ctx.createLinearGradient(x, y + s, x, y);
-      g.addColorStop(0, shade(base, -0.25));
-      g.addColorStop(1, "#ffd24a");
-      ctx.fillStyle = g;
-      ctx.fillRect(x, y, s, s);
-      ctx.fillStyle = "rgba(255,90,40,0.85)";
       ctx.beginPath();
-      ctx.moveTo(x + s * 0.5, y + s * 0.2);
-      ctx.quadraticCurveTo(x + s * 0.78, y + s * 0.5, x + s * 0.5, y + s * 0.82);
-      ctx.quadraticCurveTo(x + s * 0.22, y + s * 0.5, x + s * 0.5, y + s * 0.2);
+      ctx.ellipse(u * 0.18, -u * 0.35, u * 0.28, u * 0.45, Math.PI / 5, 0, 7);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(-u * 0.18, -u * 0.35, u * 0.28, u * 0.45, -Math.PI / 5, 0, 7);
       ctx.fill();
       break;
-    }
-    case Element.Water: {
-      // 水：横向波纹
-      ctx.strokeStyle = shade(base, 0.45);
-      for (let i = 1; i <= 3; i++) {
-        const wy = y + (s * i) / 4;
-        ctx.beginPath();
-        ctx.moveTo(x, wy);
-        ctx.quadraticCurveTo(x + s * 0.25, wy - s * 0.1, x + s * 0.5, wy);
-        ctx.quadraticCurveTo(x + s * 0.75, wy + s * 0.1, x + s, wy);
-        ctx.stroke();
-      }
-      break;
-    }
-    case Element.Wood: {
-      // 木：竖向纹理 + 节疤
-      ctx.strokeStyle = shade(base, -0.3);
-      for (let i = 1; i <= 3; i++) {
-        const wx = x + (s * i) / 4;
-        ctx.beginPath();
-        ctx.moveTo(wx, y);
-        ctx.lineTo(wx, y + s);
-        ctx.stroke();
-      }
-      ctx.fillStyle = shade(base, -0.35);
+    case Element.Metal:
       ctx.beginPath();
-      ctx.ellipse(x + s * 0.5, y + s * 0.5, s * 0.12, s * 0.18, 0, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case Element.Metal: {
-      // 金属：对角高光 + 四角铆钉
-      const g = ctx.createLinearGradient(x, y, x + s, y + s);
-      g.addColorStop(0, shade(base, 0.4));
-      g.addColorStop(0.5, base);
-      g.addColorStop(1, shade(base, -0.3));
-      ctx.fillStyle = g;
-      ctx.fillRect(x, y, s, s);
-      ctx.fillStyle = shade(base, -0.4);
-      const r = s * 0.08;
-      for (const [rx, ry] of [
-        [0.22, 0.22],
-        [0.78, 0.22],
-        [0.22, 0.78],
-        [0.78, 0.78],
-      ]) {
-        ctx.beginPath();
-        ctx.arc(x + s * rx, y + s * ry, r, 0, Math.PI * 2);
-        ctx.fill();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i - Math.PI / 2;
+        const px = Math.cos(a) * u * 0.6;
+        const py = Math.sin(a) * u * 0.6;
+        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
       }
-      break;
-    }
-    case Element.Ice: {
-      // 冰：晶面三角 + 高光
-      ctx.fillStyle = "rgba(255,255,255,0.25)";
-      ctx.beginPath();
-      ctx.moveTo(x + s * 0.5, y + s * 0.15);
-      ctx.lineTo(x + s * 0.8, y + s * 0.55);
-      ctx.lineTo(x + s * 0.5, y + s * 0.85);
-      ctx.lineTo(x + s * 0.2, y + s * 0.55);
       ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 0, u * 0.18, 0, 7);
       ctx.stroke();
       break;
-    }
-    case Element.Sticky: {
-      // 粘粘：气泡点
-      ctx.fillStyle = shade(base, 0.4);
-      for (const [rx, ry, rr] of [
-        [0.3, 0.32, 0.13],
-        [0.68, 0.4, 0.1],
-        [0.45, 0.68, 0.12],
-      ]) {
+    case Element.Ice:
+      for (let i = 0; i < 3; i++) {
+        ctx.save();
+        ctx.rotate((Math.PI / 3) * i);
         ctx.beginPath();
-        ctx.arc(x + s * rx, y + s * ry, s * rr, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(0, -u * 0.6);
+        ctx.lineTo(0, u * 0.6);
+        ctx.stroke();
+        ctx.restore();
       }
       break;
-    }
-    case Element.Life: {
-      // 生命：四芒星符文 + 光晕
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      const cx = x + s * 0.5,
-        cy = y + s * 0.5;
-      const o = s * 0.34,
-        i = s * 0.12;
+    case Element.Sticky:
       ctx.beginPath();
-      for (let k = 0; k < 8; k++) {
-        const ang = (Math.PI / 4) * k - Math.PI / 2;
-        const rad = k % 2 === 0 ? o : i;
-        const px = cx + Math.cos(ang) * rad;
-        const py = cy + Math.sin(ang) * rad;
-        if (k === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
+      ctx.arc(-u * 0.2, -u * 0.05, u * 0.3, 0, 7);
+      ctx.arc(u * 0.22, u * 0.12, u * 0.24, 0, 7);
+      ctx.fill();
+      break;
+    case Element.Life:
+      ctx.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const a = (Math.PI / 5) * k - Math.PI / 2;
+        const rad = k % 2 ? u * 0.25 : u * 0.62;
+        const px = Math.cos(a) * rad;
+        const py = Math.sin(a) * rad;
+        k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
       }
       ctx.closePath();
       ctx.fill();
       break;
-    }
+    case Element.Earth:
+      ctx.lineWidth = s * 0.05;
+      for (const gy of [-u * 0.3, u * 0.1]) {
+        ctx.beginPath();
+        ctx.moveTo(-u * 0.6, gy);
+        ctx.lineTo(u * 0.6, gy);
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.moveTo(0, -u * 0.6);
+      ctx.lineTo(0, -u * 0.3);
+      ctx.moveTo(-u * 0.3, -u * 0.3);
+      ctx.lineTo(-u * 0.3, u * 0.1);
+      ctx.moveTo(u * 0.3, -u * 0.3);
+      ctx.lineTo(u * 0.3, u * 0.1);
+      ctx.stroke();
+      break;
     default:
       break;
   }
@@ -203,37 +158,49 @@ export function drawCellBlock(
   cell: Cell,
   alpha = 1,
 ): void {
+  if (cell.element === Element.Empty) return;
   const base = ELEMENT_COLORS[cell.element];
   ctx.globalAlpha = alpha;
+  const r = Math.max(2, size * 0.2);
 
-  // 主体底色
-  ctx.fillStyle = base;
-  roundRect(ctx, cx + 1, cy + 1, size - 2, size - 2, Math.max(2, size * 0.16));
-  ctx.fill();
-
-  // 元素纹理
-  if (cell.element !== Element.Empty) drawTexture(ctx, cell.element, cx, cy, size);
-
-  // 顶部高光 + 描边，统一立体感
-  ctx.fillStyle = "rgba(255,255,255,0.18)";
-  roundRect(ctx, cx + 2, cy + 2, size - 4, (size - 4) * 0.28, Math.max(2, size * 0.14));
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,0.25)";
-  ctx.lineWidth = 1;
-  roundRect(ctx, cx + 1, cy + 1, size - 2, size - 2, Math.max(2, size * 0.16));
-  ctx.stroke();
+  const sprite = elementImages[cell.element];
+  if (imgReady(sprite)) {
+    // 手绘贴图（圆角裁剪）
+    ctx.save();
+    roundRect(ctx, cx + 0.5, cy + 0.5, size - 1, size - 1, r);
+    ctx.clip();
+    ctx.drawImage(sprite as CanvasImageSource, cx + 0.5, cy + 0.5, size - 1, size - 1);
+    ctx.restore();
+  } else {
+    // 贴图未就绪时的程序化兜底（宝石底 + 图标）
+    const g = ctx.createLinearGradient(cx, cy, cx, cy + size);
+    g.addColorStop(0, shade(base, 0.32));
+    g.addColorStop(0.5, base);
+    g.addColorStop(1, shade(base, -0.24));
+    ctx.fillStyle = g;
+    roundRect(ctx, cx + 1.5, cy + 1.5, size - 3, size - 3, r);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.38)";
+    roundRect(ctx, cx + size * 0.16, cy + size * 0.1, size * 0.68, size * 0.2, size * 0.1);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.22)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, cx + 1.5, cy + 1.5, size - 3, size - 3, r);
+    ctx.stroke();
+    drawIcon(ctx, cell.element, cx + size * 0.2, cy + size * 0.2, size * 0.6, "rgba(255,255,255,0.92)");
+  }
 
   // 带电描边
   if (cell.charged) {
     ctx.strokeStyle = "#fff45a";
     ctx.lineWidth = 2;
-    roundRect(ctx, cx + 2, cy + 2, size - 4, size - 4, Math.max(2, size * 0.12));
+    roundRect(ctx, cx + 2.5, cy + 2.5, size - 5, size - 5, r * 0.8);
     ctx.stroke();
   }
 
   // 反应倒计时
   if (cell.timer > 0) {
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
+    ctx.fillStyle = "rgba(0,0,0,0.62)";
     ctx.beginPath();
     ctx.arc(cx + size / 2, cy + size / 2, size * 0.26, 0, Math.PI * 2);
     ctx.fill();

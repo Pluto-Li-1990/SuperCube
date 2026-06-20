@@ -119,9 +119,15 @@ export class Battle {
     this.cell = Math.max(18, Math.min(34, Math.floor(avail / this.game.grid.w)));
 
     this.canvas = document.getElementById("board-canvas") as HTMLCanvasElement;
-    this.canvas.width = this.game.grid.w * this.cell;
-    this.canvas.height = this.game.grid.h * this.cell;
+    const cssW = this.game.grid.w * this.cell;
+    const cssH = this.game.grid.h * this.cell;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    this.canvas.width = Math.round(cssW * dpr);
+    this.canvas.height = Math.round(cssH * dpr);
+    this.canvas.style.width = cssW + "px";
+    this.canvas.style.height = cssH + "px";
     this.ctx = this.canvas.getContext("2d")!;
+    this.ctx.scale(dpr, dpr); // 高分屏清晰渲染
     this.bindTouch();
 
     document.getElementById("b-exit")!.onclick = () => {
