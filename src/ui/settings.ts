@@ -7,6 +7,7 @@ export interface GameSettings {
   fallMs: number; // 自动下落间隔(ms)，越小越快
   sfx: boolean; // 音效
   bgm: boolean; // 背景音乐
+  serverUrl: string; // 联网服务器地址
 }
 
 const KEY = "supercube.settings";
@@ -16,6 +17,7 @@ const DEFAULTS: GameSettings = {
   fallMs: 800,
   sfx: true,
   bgm: false,
+  serverUrl: "",
 };
 
 function load(): GameSettings {
