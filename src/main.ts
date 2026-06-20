@@ -46,6 +46,9 @@ function showLobby(): void {
       <button class="menu-card" id="m-survival">
         <span class="mc-icon">🛡️</span><span class="mc-title">生存竞技</span>
         <span class="mc-sub">触顶即死</span></button>
+      <button class="menu-card" id="m-timeattack">
+        <span class="mc-icon">⏱️</span><span class="mc-title">限时狂欢</span>
+        <span class="mc-sub">90 秒拼分 · 不死亡</span></button>
       <button class="menu-card" id="m-workshop">
         <span class="mc-icon">⚒️</span><span class="mc-title">源力工坊</span>
         <span class="mc-sub">设计自定义棋子</span></button>
@@ -64,6 +67,7 @@ function showLobby(): void {
 
   document.getElementById("m-pvp")!.onclick = () => startLoadout("shared-turn");
   document.getElementById("m-survival")!.onclick = () => startBattle("survival");
+  document.getElementById("m-timeattack")!.onclick = () => startBattle("time-attack");
   document.getElementById("m-workshop")!.onclick = () => showWorkshop();
   document.getElementById("m-settings")!.onclick = () => {
     clear();

@@ -131,6 +131,12 @@ export class Game {
     this.active = { def, cells, px, py };
     // 生成即碰撞 → 该模式判定
     if (this.collides(this.active, 0, 0)) {
+      if (this.mode === "time-attack") {
+        // 限时狂欢：不死亡，清掉顶部 4 行腾出空间后继续
+        for (let y = 0; y < 4; y++)
+          for (let x = 0; x < this.grid.w; x++) this.grid.clearCell(x, y);
+        if (!this.collides(this.active, 0, 0)) return;
+      }
       this.onTopOut();
     }
   }

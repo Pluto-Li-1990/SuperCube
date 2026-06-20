@@ -24,6 +24,13 @@ describe("游戏引擎 回合循环", () => {
     expect(g.players.B.score).toBeGreaterThanOrEqual(0);
   });
 
+  it("限时狂欢模式：触顶不死亡，持续可玩", () => {
+    const g = new Game({ seed: 3, mode: "time-attack", aiPlayer: "B" });
+    for (let i = 0; i < 120 && !g.gameOver; i++) g.commitTurn();
+    // 限时模式不应因触顶而 gameOver（由计时器在 UI 层结束）
+    expect(g.gameOver).toBe(false);
+  });
+
   it("移动与旋转受边界约束", () => {
     const g = new Game({ seed: 1 });
     // 一直左移直到撞墙
