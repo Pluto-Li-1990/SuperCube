@@ -2,8 +2,10 @@ import "./style.css";
 import { Battle } from "./ui/battle";
 import { Workshop } from "./ui/workshop";
 import { LoadoutScreen } from "./ui/loadout";
-import { SettingsScreen } from "./ui/settings";
+import { SettingsScreen, settings, saveSettings } from "./ui/settings";
+import { OnlineBattle } from "./ui/onlineBattle";
 import { loadElementArt } from "./ui/elementsArt";
+import { TutorialOverlay, hasSeenTutorial } from "./ui/tutorial";
 import { buildLoadoutBags } from "./core/loadout";
 import { GameMode } from "./core/engine";
 import { AIDifficulty } from "./ai/ai";
@@ -43,15 +45,24 @@ function showLobby(): void {
       <button class="menu-card pvp" id="m-pvp">
         <span class="mc-icon">⚔️</span><span class="mc-title">对战 (vs AI)</span>
         <span class="mc-sub">同屏回合制 · 抢分截胡</span></button>
+      <button class="menu-card" id="m-online">
+        <span class="mc-icon">🌐</span><span class="mc-title">在线对战</span>
+        <span class="mc-sub">真人匹配 · 跨设备</span></button>
       <button class="menu-card" id="m-survival">
         <span class="mc-icon">🛡️</span><span class="mc-title">生存竞技</span>
         <span class="mc-sub">触顶即死</span></button>
+      <button class="menu-card" id="m-timeattack">
+        <span class="mc-icon">⏱️</span><span class="mc-title">限时狂欢</span>
+        <span class="mc-sub">90 秒拼分 · 不死亡</span></button>
       <button class="menu-card" id="m-workshop">
         <span class="mc-icon">⚒️</span><span class="mc-title">源力工坊</span>
         <span class="mc-sub">设计自定义棋子</span></button>
       <button class="menu-card" id="m-settings">
         <span class="mc-icon">⚙️</span><span class="mc-title">系统设置</span>
         <span class="mc-sub">虚影提示 · 下落速度</span></button>
+      <button class="menu-card" id="m-tutorial">
+        <span class="mc-icon">📖</span><span class="mc-title">新手教程</span>
+        <span class="mc-sub">玩法 · 元素 · 天气</span></button>
     </div>
     <div class="lobby-diff">
       AI 难度：
@@ -63,11 +74,16 @@ function showLobby(): void {
   app.append(wrap);
 
   document.getElementById("m-pvp")!.onclick = () => startLoadout("shared-turn");
+  document.getElementById("m-online")!.onclick = () => startOnline();
   document.getElementById("m-survival")!.onclick = () => startBattle("survival");
+  document.getElementById("m-timeattack")!.onclick = () => startBattle("time-attack");
   document.getElementById("m-workshop")!.onclick = () => showWorkshop();
   document.getElementById("m-settings")!.onclick = () => {
     clear();
     new SettingsScreen(app, showLobby);
+  };
+  document.getElementById("m-tutorial")!.onclick = () => {
+    new TutorialOverlay(() => {});
   };
   wrap.querySelectorAll(".lobby-diff button").forEach((b) => {
     (b as HTMLElement).onclick = () => {
@@ -89,6 +105,16 @@ function startLoadout(mode: GameMode): void {
     },
     showLobby,
   );
+}
+
+function startOnline(): void {
+  const def = settings.serverUrl || "wss://";
+  const url = window.prompt("输入联网服务器地址（部署服务器后填，如 wss://你的域名）", def);
+  if (!url || url === "wss://") return;
+  settings.serverUrl = url;
+  saveSettings();
+  clear();
+  new OnlineBattle(app, { serverUrl: url, name: "玩家", playerBag, onExit: showLobby });
 }
 
 function startBattle(mode: GameMode, playerBagOverride?: PieceDef[], aiBag?: PieceDef[]): void {
@@ -124,3 +150,4 @@ function showWorkshop(): void {
 
 loadElementArt();
 showLobby();
+if (!hasSeenTutorial()) new TutorialOverlay(() => {});

@@ -1,8 +1,13 @@
+import { audio } from "./audio";
+
 // 全局设置（带 localStorage 持久化）
 
 export interface GameSettings {
   ghost: boolean; // 落点虚影提示
   fallMs: number; // 自动下落间隔(ms)，越小越快
+  sfx: boolean; // 音效
+  bgm: boolean; // 背景音乐
+  serverUrl: string; // 联网服务器地址
 }
 
 const KEY = "supercube.settings";
@@ -10,6 +15,9 @@ const KEY = "supercube.settings";
 const DEFAULTS: GameSettings = {
   ghost: false, // 默认关闭虚影（玩家反馈干扰）
   fallMs: 800,
+  sfx: true,
+  bgm: false,
+  serverUrl: "",
 };
 
 function load(): GameSettings {
@@ -55,6 +63,23 @@ export class SettingsScreen {
       toggleRow("落点虚影提示", "显示棋子落到底部的半透明预览", settings.ghost, (v) => {
         settings.ghost = v;
         saveSettings();
+      }),
+    );
+
+    // 音效开关
+    wrap.append(
+      toggleRow("音效", "落子、消除、元素反应的音效", settings.sfx, (v) => {
+        settings.sfx = v;
+        saveSettings();
+      }),
+    );
+
+    // 背景音乐开关
+    wrap.append(
+      toggleRow("背景音乐", "轻量循环背景旋律", settings.bgm, (v) => {
+        settings.bgm = v;
+        saveSettings();
+        audio.syncBgm();
       }),
     );
 

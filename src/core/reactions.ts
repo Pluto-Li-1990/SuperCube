@@ -41,7 +41,7 @@ export function resolveReactions(g: Grid, weather: Weather, rng: RNG): ReactionE
   const events: ReactionEvent[] = [];
 
   // 1) 推进已有计时器，成熟的执行
-  matureTimers(g, weather, events);
+  matureTimers(g, weather, rng, events);
 
   // 2) 天气持续效果
   applyWeather(g, weather, events);
@@ -56,7 +56,7 @@ export function resolveReactions(g: Grid, weather: Weather, rng: RNG): ReactionE
 }
 
 // --- 步骤 1：成熟计时器执行 ---
-function matureTimers(g: Grid, weather: Weather, events: ReactionEvent[]): void {
+function matureTimers(g: Grid, weather: Weather, rng: RNG, events: ReactionEvent[]): void {
   const matured: [number, number][] = [];
   for (let y = 0; y < g.h; y++) {
     for (let x = 0; x < g.w; x++) {
@@ -90,7 +90,7 @@ function matureTimers(g: Grid, weather: Weather, events: ReactionEvent[]): void 
       events.push({ type: "fire-water-annihilate", x, y });
     } else if (c.element === Element.Water && c.transformTo === Element.Wood) {
       // 水催生木：消耗水，相连木上方长新木
-      doWaterGrowth(g, x, y, weather, events);
+      doWaterGrowth(g, x, y, weather, rng, events);
     } else if (c.element === Element.Metal && c.transformTo === Element.Metal) {
       // 金属下压：压碎正下方一层
       doMetalCrush(g, x, y, events);
@@ -118,6 +118,7 @@ function doWaterGrowth(
   x: number,
   y: number,
   weather: Weather,
+  rng: RNG,
   events: ReactionEvent[],
 ): void {
   const woods = edgeNeighborsOf(g, x, y, Element.Wood);
@@ -133,7 +134,7 @@ function doWaterGrowth(
         g.set(wx, ny, makeCell(Element.Wood));
       } else {
         // 上方有物 → 整列顶起一格（RNG 防无限增生）
-        if (Math.random() < 0.6) pushColumnUp(g, wx, wy - i + 1);
+        if (rng.next() < 0.6) pushColumnUp(g, wx, wy - i + 1);
         break;
       }
     }

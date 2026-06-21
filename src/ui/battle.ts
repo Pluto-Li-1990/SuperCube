@@ -1,9 +1,10 @@
-import { Game, GameMode } from "../core/engine";
+import { Game, GameMode, TurnResult } from "../core/engine";
 import { PieceDef, WEATHER_NAMES, WEATHER_DESC, ELEMENT_NAMES } from "../core/types";
 import { aiPlayTurn, AIDifficulty } from "../ai/ai";
 import { drawGrid, drawPieceCells, DrawOpts } from "./render";
 import { WEATHER_ICON, ELEMENT_COLORS } from "./colors";
 import { settings } from "./settings";
+import { audio } from "./audio";
 
 export interface BattleOpts {
   mode: GameMode;
@@ -26,6 +27,9 @@ export class Battle {
   log: string[] = [];
   fallTimer?: ReturnType<typeof setInterval>;
   lockPending = false; // 落地缓冲：再过一拍才锁定，期间可微调
+  matchTimer?: ReturnType<typeof setInterval>;
+  timeLeft = 0;
+  resultShown = false;
 
   constructor(root: HTMLElement, opts: BattleOpts) {
     this.root = root;
@@ -41,6 +45,30 @@ export class Battle {
     this.bindKeys();
     this.loop();
     this.startFall();
+    audio.syncBgm();
+    if (this.opts.mode === "time-attack") this.startMatchTimer();
+  }
+
+  private startMatchTimer(): void {
+    this.timeLeft = 90;
+    this.updateTimerUI();
+    this.matchTimer = setInterval(() => {
+      this.timeLeft--;
+      this.updateTimerUI();
+      if (this.timeLeft <= 0) {
+        if (this.matchTimer) clearInterval(this.matchTimer);
+        this.game.gameOver = true;
+        const a = this.game.players.A.score;
+        const b = this.game.players.B.score;
+        this.game.winner = a > b ? "A" : b > a ? "B" : null;
+        this.showResult();
+      }
+    }, 1000);
+  }
+
+  private updateTimerUI(): void {
+    const el = document.getElementById("mode-badge");
+    if (el) el.textContent = `⏱ ${this.timeLeft}s`;
   }
 
   private startFall(): void {
@@ -74,7 +102,7 @@ export class Battle {
     top.className = "battle-top";
     top.innerHTML = `<button class="btn-exit" id="b-exit">‹ 大厅</button>
       <div class="weather-station" id="weather-station"></div>
-      <div class="mode-badge">${modeName(this.opts.mode)}</div>`;
+      <div class="mode-badge" id="mode-badge">${modeName(this.opts.mode)}</div>`;
     wrap.append(top);
 
     // 双方信息一排（棋盘上方，竖屏友好）
@@ -154,6 +182,7 @@ export class Battle {
   }
 
   private onTouchStart(e: TouchEvent): void {
+    audio.resume();
     if (!this.canDrive()) return;
     const t = e.touches[0];
     this.touch = {
@@ -192,7 +221,7 @@ export class Battle {
     if (this.touch.lock === "v" && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
       this.humanCommit(); // 向下滑 → 硬降落子
     } else if (!this.touch.lock && dt < 300) {
-      this.game.rotate(); // 轻点 → 旋转
+      if (this.game.rotate()) audio.rotate(); // 轻点 → 旋转
     }
   }
 
@@ -218,16 +247,17 @@ export class Battle {
 
   private act(act: string): void {
     if (this.busy || this.game.gameOver) return;
+    audio.resume();
     if (this.game.current !== "A") return; // 仅人类回合可操作
     switch (act) {
       case "left":
-        this.game.move(-1);
+        if (this.game.move(-1)) audio.move();
         break;
       case "right":
-        this.game.move(1);
+        if (this.game.move(1)) audio.move();
         break;
       case "rotate":
-        this.game.rotate();
+        if (this.game.rotate()) audio.rotate();
         break;
       case "down":
         this.game.step();
@@ -238,11 +268,19 @@ export class Battle {
     }
   }
 
+  private playTurnSfx(res: TurnResult): void {
+    audio.lock();
+    if (res.events.some((e) => e.type !== "weather")) audio.reaction();
+    if (res.linesCleared > 0) audio.clear(res.linesCleared);
+    if (res.ancientLife) audio.ancient();
+  }
+
   private humanCommit(): void {
     this.lockPending = false;
     const before = this.game.players.A.score;
     const res = this.game.commitTurn();
     const gained = this.game.players.A.score - before;
+    this.playTurnSfx(res);
     if (res.linesCleared > 0) this.pushLog(`A 消除 ${res.linesCleared} 行 +${gained}`);
     if (res.ancientLife) this.pushLog(`⚡A 召唤远古生命！清屏 +海量积分`);
     this.afterTurn();
@@ -261,6 +299,7 @@ export class Battle {
         const before = this.game.players.B.score;
         const res = aiPlayTurn(this.game, this.opts.difficulty);
         const gained = this.game.players.B.score - before;
+        this.playTurnSfx(res);
         if (res.linesCleared > 0) this.pushLog(`B(AI) 消除 ${res.linesCleared} 行 +${gained}`);
         if (res.ancientLife) this.pushLog(`⚡B 召唤远古生命！`);
         this.busy = false;
@@ -277,11 +316,16 @@ export class Battle {
   }
 
   private showResult(): void {
+    if (this.resultShown) return;
+    this.resultShown = true;
+    if (this.matchTimer) clearInterval(this.matchTimer);
     const a = this.game.players.A.score;
     const b = this.game.players.B.score;
     let title = "平局";
-    if (this.game.winner === "A" || a > b) title = "🏆 你赢了！";
+    const win = this.game.winner === "A" || (this.game.winner === null && a > b);
+    if (win) title = "🏆 你赢了！";
     else if (this.game.winner === "B" || b > a) title = "AI 获胜";
+    audio.gameOver(win);
     const overlay = document.createElement("div");
     overlay.className = "result-overlay";
     overlay.innerHTML = `<div class="result-card">
@@ -301,6 +345,8 @@ export class Battle {
       });
       this.busy = false;
       this.log = [];
+      this.resultShown = false;
+      if (this.opts.mode === "time-attack") this.startMatchTimer();
     };
     document.getElementById("r-exit")!.onclick = () => {
       cancelAnimationFrame(this.raf);
@@ -367,6 +413,7 @@ export class Battle {
   destroy(): void {
     cancelAnimationFrame(this.raf);
     if (this.fallTimer) clearInterval(this.fallTimer);
+    if (this.matchTimer) clearInterval(this.matchTimer);
     if (this._keyHandler) window.removeEventListener("keydown", this._keyHandler);
   }
 }

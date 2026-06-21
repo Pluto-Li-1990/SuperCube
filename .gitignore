@@ -1,9 +1,12 @@
 node_modules/
 dist/
+ios/
+android/
 *.log
 .DS_Store
 vite.config.ts.timestamp-*
 *.timestamp-*.mjs
+server/tests/e2e_lockstep.test.ts
 style_A_gem.png
 style_B_flat.png
 style_C_neon.png
