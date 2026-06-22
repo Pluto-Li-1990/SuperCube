@@ -1,14 +1,16 @@
-import { Game, GameMode } from "../core/engine";
+import { Game, GameMode, TurnResult } from "../core/engine";
 import { PieceDef, WEATHER_NAMES, WEATHER_DESC, ELEMENT_NAMES } from "../core/types";
 import { aiPlayTurn, AIDifficulty } from "../ai/ai";
 import { drawGrid, drawPieceCells, DrawOpts } from "./render";
 import { WEATHER_ICON, ELEMENT_COLORS } from "./colors";
-import { ELEMENT_GLYPH } from "./colors";
+import { settings } from "./settings";
+import { audio } from "./audio";
 
 export interface BattleOpts {
   mode: GameMode;
   difficulty: AIDifficulty;
   playerBag: PieceDef[];
+  aiBag?: PieceDef[]; // Loadout Debuff：强塞进对手掉落池的棋子
   seed?: number;
   onExit: () => void;
 }
@@ -23,6 +25,11 @@ export class Battle {
   raf = 0;
   busy = false; // AI 回合锁
   log: string[] = [];
+  fallTimer?: ReturnType<typeof setInterval>;
+  lockPending = false; // 落地缓冲：再过一拍才锁定，期间可微调
+  matchTimer?: ReturnType<typeof setInterval>;
+  timeLeft = 0;
+  resultShown = false;
 
   constructor(root: HTMLElement, opts: BattleOpts) {
     this.root = root;
@@ -32,10 +39,57 @@ export class Battle {
       mode: opts.mode,
       aiPlayer: "B",
       customBagA: opts.playerBag,
+      customBagB: opts.aiBag,
     });
     this.build();
     this.bindKeys();
     this.loop();
+    this.startFall();
+    audio.syncBgm();
+    if (this.opts.mode === "time-attack") this.startMatchTimer();
+  }
+
+  private startMatchTimer(): void {
+    this.timeLeft = 90;
+    this.updateTimerUI();
+    this.matchTimer = setInterval(() => {
+      this.timeLeft--;
+      this.updateTimerUI();
+      if (this.timeLeft <= 0) {
+        if (this.matchTimer) clearInterval(this.matchTimer);
+        this.game.gameOver = true;
+        const a = this.game.players.A.score;
+        const b = this.game.players.B.score;
+        this.game.winner = a > b ? "A" : b > a ? "B" : null;
+        this.showResult();
+      }
+    }, 1000);
+  }
+
+  private updateTimerUI(): void {
+    const el = document.getElementById("mode-badge");
+    if (el) el.textContent = `⏱ ${this.timeLeft}s`;
+  }
+
+  private startFall(): void {
+    this.fallTimer = setInterval(() => this.fallTick(), settings.fallMs);
+  }
+
+  // 自动下落一格；到底后给一拍缓冲，仍不能下落则锁定
+  private fallTick(): void {
+    if (this.game.gameOver || this.busy) return;
+    if (this.game.current !== "A" || !this.game.active) return;
+    const moved = this.game.step();
+    if (!moved) {
+      if (this.lockPending) {
+        this.lockPending = false;
+        this.humanCommit();
+      } else {
+        this.lockPending = true;
+      }
+    } else {
+      this.lockPending = false;
+    }
   }
 
   private build(): void {
@@ -48,28 +102,36 @@ export class Battle {
     top.className = "battle-top";
     top.innerHTML = `<button class="btn-exit" id="b-exit">‹ 大厅</button>
       <div class="weather-station" id="weather-station"></div>
-      <div class="mode-badge">${modeName(this.opts.mode)}</div>`;
+      <div class="mode-badge" id="mode-badge">${modeName(this.opts.mode)}</div>`;
     wrap.append(top);
 
-    // 中部：A 面板 | 棋盘 | B 面板
+    // 双方信息一排（棋盘上方，竖屏友好）
+    const players = document.createElement("div");
+    players.className = "players-row";
+    players.innerHTML = `
+      <div class="ppanel" id="panel-A"></div>
+      <div class="ppanel" id="panel-B"></div>`;
+    wrap.append(players);
+
+    // 棋盘
     const mid = document.createElement("div");
     mid.className = "battle-mid";
-    mid.innerHTML = `
-      <div class="ppanel" id="panel-A"></div>
-      <div class="board-col">
-        <canvas id="board-canvas"></canvas>
-      </div>
-      <div class="ppanel" id="panel-B"></div>`;
+    mid.innerHTML = `<div class="board-col"><canvas id="board-canvas"></canvas></div>`;
     wrap.append(mid);
 
-    // 底部：触控按钮 + 日志
+    // 手势提示
+    const hint = document.createElement("div");
+    hint.className = "gesture-hint";
+    hint.textContent = "拖动棋子左右移动 · 轻点旋转 · 向下滑落子";
+    wrap.append(hint);
+
+    // 底部：触控按钮（备用）+ 日志
     const ctrl = document.createElement("div");
     ctrl.className = "battle-ctrl";
     ctrl.innerHTML = `
       <button class="ctrl-btn" data-act="left">◀</button>
       <button class="ctrl-btn" data-act="rotate">⟳</button>
       <button class="ctrl-btn" data-act="right">▶</button>
-      <button class="ctrl-btn" data-act="down">▼</button>
       <button class="ctrl-btn drop" data-act="drop">落子 ⤓</button>`;
     wrap.append(ctrl);
 
@@ -80,10 +142,21 @@ export class Battle {
 
     this.root.append(wrap);
 
+    // 响应式格子尺寸：竖屏占满宽度
+    const avail = Math.min(window.innerWidth, 460) - 24;
+    this.cell = Math.max(18, Math.min(34, Math.floor(avail / this.game.grid.w)));
+
     this.canvas = document.getElementById("board-canvas") as HTMLCanvasElement;
-    this.canvas.width = this.game.grid.w * this.cell;
-    this.canvas.height = this.game.grid.h * this.cell;
+    const cssW = this.game.grid.w * this.cell;
+    const cssH = this.game.grid.h * this.cell;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    this.canvas.width = Math.round(cssW * dpr);
+    this.canvas.height = Math.round(cssH * dpr);
+    this.canvas.style.width = cssW + "px";
+    this.canvas.style.height = cssH + "px";
     this.ctx = this.canvas.getContext("2d")!;
+    this.ctx.scale(dpr, dpr); // 高分屏清晰渲染
+    this.bindTouch();
 
     document.getElementById("b-exit")!.onclick = () => {
       cancelAnimationFrame(this.raf);
@@ -92,6 +165,64 @@ export class Battle {
     ctrl.querySelectorAll(".ctrl-btn").forEach((b) => {
       (b as HTMLElement).onclick = () => this.act((b as HTMLElement).dataset.act!);
     });
+  }
+
+  // ===== 直接拖拽 + 手势 =====
+  private touch = { active: false, sx: 0, sy: 0, lx: 0, ly: 0, startPx: 0, lock: "" as "" | "h" | "v", t0: 0 };
+
+  private bindTouch(): void {
+    const c = this.canvas;
+    c.addEventListener("touchstart", (e) => this.onTouchStart(e), { passive: false });
+    c.addEventListener("touchmove", (e) => this.onTouchMove(e), { passive: false });
+    c.addEventListener("touchend", (e) => this.onTouchEnd(e), { passive: false });
+  }
+
+  private canDrive(): boolean {
+    return !this.game.gameOver && !this.busy && this.game.current === "A" && !!this.game.active;
+  }
+
+  private onTouchStart(e: TouchEvent): void {
+    audio.resume();
+    if (!this.canDrive()) return;
+    const t = e.touches[0];
+    this.touch = {
+      active: true, sx: t.clientX, sy: t.clientY, lx: t.clientX, ly: t.clientY,
+      startPx: this.game.active!.px, lock: "", t0: performance.now(),
+    };
+  }
+
+  private onTouchMove(e: TouchEvent): void {
+    if (!this.touch.active || !this.canDrive()) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    this.touch.lx = t.clientX;
+    this.touch.ly = t.clientY;
+    const dx = t.clientX - this.touch.sx;
+    const dy = t.clientY - this.touch.sy;
+    if (!this.touch.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      this.touch.lock = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    }
+    if (this.touch.lock === "h") {
+      const rect = this.canvas.getBoundingClientRect();
+      const cellPx = rect.width / this.game.grid.w;
+      const desired = this.touch.startPx + Math.round(dx / cellPx);
+      while (this.game.active!.px < desired && this.game.move(1)) { /* 右移 */ }
+      while (this.game.active!.px > desired && this.game.move(-1)) { /* 左移 */ }
+    }
+  }
+
+  private onTouchEnd(_e: TouchEvent): void {
+    if (!this.touch.active) return;
+    this.touch.active = false;
+    if (!this.canDrive()) return;
+    const dt = performance.now() - this.touch.t0;
+    const dx = this.touch.lx - this.touch.sx;
+    const dy = this.touch.ly - this.touch.sy;
+    if (this.touch.lock === "v" && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+      this.humanCommit(); // 向下滑 → 硬降落子
+    } else if (!this.touch.lock && dt < 300) {
+      if (this.game.rotate()) audio.rotate(); // 轻点 → 旋转
+    }
   }
 
   private bindKeys(): void {
@@ -116,16 +247,17 @@ export class Battle {
 
   private act(act: string): void {
     if (this.busy || this.game.gameOver) return;
+    audio.resume();
     if (this.game.current !== "A") return; // 仅人类回合可操作
     switch (act) {
       case "left":
-        this.game.move(-1);
+        if (this.game.move(-1)) audio.move();
         break;
       case "right":
-        this.game.move(1);
+        if (this.game.move(1)) audio.move();
         break;
       case "rotate":
-        this.game.rotate();
+        if (this.game.rotate()) audio.rotate();
         break;
       case "down":
         this.game.step();
@@ -136,10 +268,19 @@ export class Battle {
     }
   }
 
+  private playTurnSfx(res: TurnResult): void {
+    audio.lock();
+    if (res.events.some((e) => e.type !== "weather")) audio.reaction();
+    if (res.linesCleared > 0) audio.clear(res.linesCleared);
+    if (res.ancientLife) audio.ancient();
+  }
+
   private humanCommit(): void {
+    this.lockPending = false;
     const before = this.game.players.A.score;
     const res = this.game.commitTurn();
     const gained = this.game.players.A.score - before;
+    this.playTurnSfx(res);
     if (res.linesCleared > 0) this.pushLog(`A 消除 ${res.linesCleared} 行 +${gained}`);
     if (res.ancientLife) this.pushLog(`⚡A 召唤远古生命！清屏 +海量积分`);
     this.afterTurn();
@@ -158,6 +299,7 @@ export class Battle {
         const before = this.game.players.B.score;
         const res = aiPlayTurn(this.game, this.opts.difficulty);
         const gained = this.game.players.B.score - before;
+        this.playTurnSfx(res);
         if (res.linesCleared > 0) this.pushLog(`B(AI) 消除 ${res.linesCleared} 行 +${gained}`);
         if (res.ancientLife) this.pushLog(`⚡B 召唤远古生命！`);
         this.busy = false;
@@ -174,11 +316,16 @@ export class Battle {
   }
 
   private showResult(): void {
+    if (this.resultShown) return;
+    this.resultShown = true;
+    if (this.matchTimer) clearInterval(this.matchTimer);
     const a = this.game.players.A.score;
     const b = this.game.players.B.score;
     let title = "平局";
-    if (this.game.winner === "A" || a > b) title = "🏆 你赢了！";
+    const win = this.game.winner === "A" || (this.game.winner === null && a > b);
+    if (win) title = "🏆 你赢了！";
     else if (this.game.winner === "B" || b > a) title = "AI 获胜";
+    audio.gameOver(win);
     const overlay = document.createElement("div");
     overlay.className = "result-overlay";
     overlay.innerHTML = `<div class="result-card">
@@ -194,9 +341,12 @@ export class Battle {
         mode: this.opts.mode,
         aiPlayer: "B",
         customBagA: this.opts.playerBag,
+        customBagB: this.opts.aiBag,
       });
       this.busy = false;
       this.log = [];
+      this.resultShown = false;
+      if (this.opts.mode === "time-attack") this.startMatchTimer();
     };
     document.getElementById("r-exit")!.onclick = () => {
       cancelAnimationFrame(this.raf);
@@ -214,7 +364,7 @@ export class Battle {
     drawGrid(this.ctx, this.game.grid, opts);
     // ghost + active
     if (this.game.active && this.game.current === "A") {
-      drawPieceCells(this.ctx, this.game.ghostCells(), opts, 0.18);
+      if (settings.ghost) drawPieceCells(this.ctx, this.game.ghostCells(), opts, 0.18);
       const abs = this.game.active.cells.map((c) => ({
         x: this.game.active!.px + c.x,
         y: this.game.active!.py + c.y,
@@ -241,12 +391,12 @@ export class Battle {
       const next = this.game.peekNext(id);
       el.className = `ppanel ${active ? "active" : ""} side-${id}`;
       el.innerHTML = `
-        <div class="pavatar">${id === "A" ? "🧑" : "🤖"}</div>
-        <div class="pname">${id === "A" ? "你" : "AI"} ${active ? "<span class='turn-dot'>●</span>" : ""}</div>
-        <div class="pscore">${p.score}</div>
-        <div class="plabel">分数</div>
-        <div class="next-box">${miniPiece(next)}</div>
-        <div class="plabel">Next</div>`;
+        <div class="p-id">
+          <span class="pavatar">${id === "A" ? "🧑" : "🤖"}</span>
+          <span class="pname">${id === "A" ? "你" : "AI"}${active ? " <span class='turn-dot'>●</span>" : ""}</span>
+        </div>
+        <div class="p-score-wrap"><div class="pscore">${p.score}</div><div class="plabel">分</div></div>
+        <div class="p-next"><div class="next-box">${miniPiece(next)}</div><div class="plabel">Next</div></div>`;
     }
   }
 
@@ -262,6 +412,8 @@ export class Battle {
 
   destroy(): void {
     cancelAnimationFrame(this.raf);
+    if (this.fallTimer) clearInterval(this.fallTimer);
+    if (this.matchTimer) clearInterval(this.matchTimer);
     if (this._keyHandler) window.removeEventListener("keydown", this._keyHandler);
   }
 }
@@ -279,9 +431,8 @@ function miniPiece(p: PieceDef): string {
     for (let x = 0; x < 4; x++) {
       const el = map.get(`${x},${y}`);
       const color = el ? ELEMENT_COLORS[el as keyof typeof ELEMENT_COLORS] : "transparent";
-      const g = el ? ELEMENT_GLYPH[el as keyof typeof ELEMENT_GLYPH] : "";
       grid.push(
-        `<i style="background:${color}" title="${el ? ELEMENT_NAMES[el as keyof typeof ELEMENT_NAMES] : ""}">${g}</i>`,
+        `<i style="background:${color}" title="${el ? ELEMENT_NAMES[el as keyof typeof ELEMENT_NAMES] : ""}"></i>`,
       );
     }
   return `<div class="mini4">${grid.join("")}</div>`;
