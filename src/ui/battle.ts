@@ -30,6 +30,7 @@ export class Battle {
   matchTimer?: ReturnType<typeof setInterval>;
   timeLeft = 0;
   resultShown = false;
+  private flashes: { x: number; y: number; t: number; destroy: boolean }[] = [];
 
   constructor(root: HTMLElement, opts: BattleOpts) {
     this.root = root;
@@ -275,11 +276,26 @@ export class Battle {
     if (res.ancientLife) audio.ancient();
   }
 
+  private snapElements(): number[][] {
+    return this.game.grid.cells.map((row) => row.map((c) => c.element));
+  }
+
+  private addFlashes(before: number[][]): void {
+    const after = this.snapElements();
+    const now = performance.now();
+    for (let y = 0; y < after.length; y++)
+      for (let x = 0; x < after[y].length; x++)
+        if (before[y]?.[x] !== after[y][x])
+          this.flashes.push({ x, y, t: now, destroy: after[y][x] === 0 });
+  }
+
   private humanCommit(): void {
     this.lockPending = false;
-    const before = this.game.players.A.score;
+    const before = this.snapElements();
+    const scoreBefore = this.game.players.A.score;
     const res = this.game.commitTurn();
-    const gained = this.game.players.A.score - before;
+    this.addFlashes(before);
+    const gained = this.game.players.A.score - scoreBefore;
     this.playTurnSfx(res);
     if (res.linesCleared > 0) this.pushLog(`A 消除 ${res.linesCleared} 行 +${gained}`);
     if (res.ancientLife) this.pushLog(`⚡A 召唤远古生命！清屏 +海量积分`);
@@ -296,15 +312,17 @@ export class Battle {
           this.busy = false;
           return this.showResult();
         }
-        const before = this.game.players.B.score;
+        const before = this.snapElements();
+        const scoreBefore = this.game.players.B.score;
         const res = aiPlayTurn(this.game, this.opts.difficulty);
-        const gained = this.game.players.B.score - before;
+        this.addFlashes(before);
+        const gained = this.game.players.B.score - scoreBefore;
         this.playTurnSfx(res);
         if (res.linesCleared > 0) this.pushLog(`B(AI) 消除 ${res.linesCleared} 行 +${gained}`);
         if (res.ancientLife) this.pushLog(`⚡B 召唤远古生命！`);
         this.busy = false;
         if (this.game.gameOver) this.showResult();
-      }, 450);
+      }, 700);
     }
   }
 
@@ -381,6 +399,28 @@ export class Battle {
     }
     this.renderPanels();
     this.renderWeather();
+    const now = performance.now();
+    this.flashes = this.flashes.filter((f) => now - f.t < 650);
+    for (const f of this.flashes) {
+      const k = 1 - (now - f.t) / 650;
+      const x0 = f.x * this.cell + 1.5, y0 = f.y * this.cell + 1.5;
+      const w = this.cell - 3, h = this.cell - 3, r = this.cell * 0.2;
+      this.ctx.save();
+      this.ctx.globalAlpha = Math.min(1, k * 1.1);
+      this.ctx.strokeStyle = f.destroy ? "#ff9a3c" : "#aee9ff";
+      this.ctx.lineWidth = 2 + k * 2.5;
+      this.ctx.shadowColor = f.destroy ? "#ff7a3c" : "#6fc8ff";
+      this.ctx.shadowBlur = 14 * k;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x0 + r, y0);
+      this.ctx.arcTo(x0 + w, y0, x0 + w, y0 + h, r);
+      this.ctx.arcTo(x0 + w, y0 + h, x0, y0 + h, r);
+      this.ctx.arcTo(x0, y0 + h, x0, y0, r);
+      this.ctx.arcTo(x0, y0, x0 + w, y0, r);
+      this.ctx.closePath();
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
   }
 
   private renderPanels(): void {

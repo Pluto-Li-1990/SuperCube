@@ -106,12 +106,12 @@ export class Game {
   // 加权随机元素（标准棋子出生时赋元素，确定性来自 this.rng）
   private rollElement(): Element {
     const r = this.rng.int(100);
-    if (r < 30) return Element.Earth;
-    if (r < 46) return Element.Wood;
-    if (r < 60) return Element.Water;
-    if (r < 72) return Element.Fire;
-    if (r < 84) return Element.Metal;
-    if (r < 92) return Element.Ice;
+    if (r < 42) return Element.Earth;
+    if (r < 56) return Element.Wood;
+    if (r < 67) return Element.Water;
+    if (r < 77) return Element.Fire;
+    if (r < 87) return Element.Metal;
+    if (r < 93) return Element.Ice;
     if (r < 97) return Element.Sticky;
     return Element.Life;
   }

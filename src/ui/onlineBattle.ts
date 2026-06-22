@@ -30,6 +30,7 @@ export class OnlineBattle {
   fallTimer?: ReturnType<typeof setInterval>;
   lockPending = false;
   resultShown = false;
+  private flashes: { x: number; y: number; t: number; destroy: boolean }[] = [];
   touch = { active: false, sx: 0, sy: 0, lx: 0, ly: 0, startPx: 0, lock: "" as "" | "h" | "v" };
 
   constructor(root: HTMLElement, opts: OnlineOpts) {
@@ -83,7 +84,9 @@ export class OnlineBattle {
     if (!this.game || !this.isMyTurn()) return;
     const move = { rotation: this.rotations, px: this.game.active!.px, hardDrop: true as const };
     this.client.sendTurn(this.matchId, this.game.turn, move);
+    const before = this.snapElements();
     const res = this.game.commitTurn(); // 乐观本地提交
+    this.addFlashes(before);
     audio.lock();
     if (res.linesCleared > 0) audio.clear(res.linesCleared);
     this.rotations = 0;
@@ -94,7 +97,9 @@ export class OnlineBattle {
   private onRemoteTurn(by: PlayerSide, move: { rotation: number; px: number; hardDrop: true }): void {
     if (!this.game) return;
     if (by === this.mySide) return; // 自己的回合已乐观提交，忽略回显
+    const before = this.snapElements();
     const res = applyMove(this.game, move);
+    this.addFlashes(before);
     audio.lock();
     if (res.linesCleared > 0) audio.clear(res.linesCleared);
     this.rotations = 0;
@@ -103,6 +108,19 @@ export class OnlineBattle {
 
   private afterAnyTurn(): void {
     if (this.game!.gameOver) this.endMatch();
+  }
+
+  private snapElements(): number[][] {
+    return this.game!.grid.cells.map((row) => row.map((c) => c.element));
+  }
+
+  private addFlashes(before: number[][]): void {
+    const after = this.snapElements();
+    const now = performance.now();
+    for (let y = 0; y < after.length; y++)
+      for (let x = 0; x < after[y].length; x++)
+        if (before[y]?.[x] !== after[y][x])
+          this.flashes.push({ x, y, t: now, destroy: after[y][x] === 0 });
   }
 
   private fallTick(): void {
@@ -204,6 +222,28 @@ export class OnlineBattle {
     const w = this.game!.weather;
     const el = document.getElementById("ob-weather");
     if (el) el.innerHTML = `<div class="w-now">${WEATHER_ICON[w.current]} <b>${WEATHER_NAMES[w.current]}</b></div><div class="w-desc">${WEATHER_DESC[w.current]}</div>`;
+    const now = performance.now();
+    this.flashes = this.flashes.filter((f) => now - f.t < 650);
+    for (const f of this.flashes) {
+      const k = 1 - (now - f.t) / 650;
+      const x0 = f.x * this.cell + 1.5, y0 = f.y * this.cell + 1.5;
+      const w = this.cell - 3, h = this.cell - 3, r = this.cell * 0.2;
+      this.ctx.save();
+      this.ctx.globalAlpha = Math.min(1, k * 1.1);
+      this.ctx.strokeStyle = f.destroy ? "#ff9a3c" : "#aee9ff";
+      this.ctx.lineWidth = 2 + k * 2.5;
+      this.ctx.shadowColor = f.destroy ? "#ff7a3c" : "#6fc8ff";
+      this.ctx.shadowBlur = 14 * k;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x0 + r, y0);
+      this.ctx.arcTo(x0 + w, y0, x0 + w, y0 + h, r);
+      this.ctx.arcTo(x0 + w, y0 + h, x0, y0 + h, r);
+      this.ctx.arcTo(x0, y0 + h, x0, y0, r);
+      this.ctx.arcTo(x0, y0, x0 + w, y0, r);
+      this.ctx.closePath();
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
   }
 
   private renderPanels(): void {
