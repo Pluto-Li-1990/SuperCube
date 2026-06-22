@@ -5,6 +5,7 @@ import { LoadoutScreen } from "./ui/loadout";
 import { SettingsScreen, settings, saveSettings } from "./ui/settings";
 import { OnlineBattle } from "./ui/onlineBattle";
 import { loadElementArt } from "./ui/elementsArt";
+import { Splash } from "./ui/splash";
 import { TutorialOverlay, hasSeenTutorial } from "./ui/tutorial";
 import { buildLoadoutBags } from "./core/loadout";
 import { GameMode } from "./core/engine";
@@ -149,5 +150,7 @@ function showWorkshop(): void {
 }
 
 loadElementArt();
-showLobby();
-if (!hasSeenTutorial()) new TutorialOverlay(() => {});
+new Splash(app, () => {
+  showLobby();
+  if (!hasSeenTutorial()) new TutorialOverlay(() => {});
+});

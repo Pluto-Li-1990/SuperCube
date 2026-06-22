@@ -243,3 +243,26 @@ button { cursor: pointer; font-family: inherit; }
   .pscore { font-size: 22px; }
   .logo { font-size: 44px; }
 }
+
+/* 开机动画 */
+.splash { position: fixed; inset: 0; z-index: 200; background: radial-gradient(circle at 50% 40%, #16203e, #06070d 70%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; transition: opacity .5s ease; overflow: hidden; }
+.splash-out { opacity: 0; }
+.splash-glow { position: absolute; width: 380px; height: 380px; border-radius: 50%; background: radial-gradient(circle, rgba(86,140,255,.45), transparent 65%); filter: blur(20px); animation: splashGlow 2.6s ease-in-out infinite alternate; }
+@keyframes splashGlow { from { transform: scale(.85); opacity:.6 } to { transform: scale(1.15); opacity:1 } }
+.splash-cube { display: grid; grid-template-columns: repeat(2, 56px); grid-template-rows: repeat(2, 56px); gap: 6px; transform: rotate(-8deg); }
+.sc-tile { width: 56px; height: 56px; border-radius: 14px; opacity: 0; box-shadow: 0 8px 24px rgba(0,0,0,.5); animation: tileIn .6s cubic-bezier(.2,.8,.3,1.2) forwards; }
+.sc-t0{animation-delay:.1s}.sc-t1{animation-delay:.25s}.sc-t2{animation-delay:.4s}.sc-t3{animation-delay:.55s}
+@keyframes tileIn { 0%{opacity:0;transform:translateY(-40px) scale(.4) rotate(-30deg)} 100%{opacity:1;transform:none} }
+.splash-title { font-size: 40px; font-weight: 900; letter-spacing: 3px; opacity: 0; background: linear-gradient(100deg,#5aa8ff,#c77dff,#ffd23f); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: splashTitleIn .7s ease .7s forwards; }
+.splash-tagline { color: #8b95a7; font-size: 13px; opacity: 0; animation: splashTitleIn .7s ease 1s forwards; }
+@keyframes splashTitleIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+/* 大厅现代化 */
+.lobby { position: relative; }
+.lobby::before { content:""; position: fixed; inset:-20%; z-index:-1; background: conic-gradient(from 0deg at 30% 20%, #16203e, #1a1230, #102030, #16203e); filter: blur(60px); opacity:.55; animation: bgspin 20s linear infinite; }
+@keyframes bgspin { to { transform: rotate(360deg); } }
+.menu-card { background: rgba(28,33,48,.55) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 6px 24px rgba(0,0,0,.3); }
+.menu-card:hover, .menu-card:active { transform: translateY(-3px) scale(1.01); border-color: rgba(90,168,255,.5); box-shadow: 0 10px 30px rgba(54,163,255,.2); }
+.menu-card.pvp { background: linear-gradient(120deg, rgba(40,90,160,.6), rgba(80,40,140,.6)) !important; }
+.logo { background-size: 200% auto; animation: logoShine 6s ease infinite; }
+@keyframes logoShine { 50% { background-position: 100% center; } }
+.lobby-stats > div { background: rgba(20,24,35,.6); backdrop-filter: blur(8px); border:1px solid rgba(255,255,255,.05); }
