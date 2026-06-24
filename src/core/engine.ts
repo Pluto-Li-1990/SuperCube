@@ -54,6 +54,7 @@ export class Game {
   turn: number; // 全局回合计数（1 掉落 = 1 回合）
   gameOver: boolean;
   winner: PlayerId | null;
+  solo: boolean;
   // 生命方块达成 5 个后的存活计数
   lifeFullSince: number | null;
 
@@ -63,14 +64,17 @@ export class Game {
     aiPlayer?: PlayerId | null;
     customBagA?: PieceDef[];
     customBagB?: PieceDef[];
+    solo?: boolean;
+    script?: PieceDef[];
   }) {
     this.rng = new RNG(opts?.seed ?? Date.now() & 0xffffffff);
     this.grid = new Grid(GRID_W, GRID_H);
     this.weather = new WeatherSystem(this.rng);
     this.mode = opts?.mode ?? "shared-turn";
-    const aiPlayer = opts?.aiPlayer ?? "B";
+    this.solo = opts?.solo ?? false;
+    const aiPlayer = this.solo ? null : opts?.aiPlayer ?? "B";
     this.players = {
-      A: this.mkPlayer("A", aiPlayer === "A", opts?.customBagA),
+      A: this.mkPlayer("A", aiPlayer === "A", opts?.customBagA, opts?.script),
       B: this.mkPlayer("B", aiPlayer === "B", opts?.customBagB),
     };
     this.current = "A";
@@ -82,10 +86,10 @@ export class Game {
     this.spawn();
   }
 
-  private mkPlayer(id: PlayerId, isAI: boolean, customBag?: PieceDef[]): PlayerState {
+  private mkPlayer(id: PlayerId, isAI: boolean, customBag?: PieceDef[], script?: PieceDef[]): PlayerState {
     const bag = [...STANDARD_PIECES];
     if (customBag) bag.push(...customBag);
-    return { id, score: 0, isAI, bag, nextQueue: [] };
+    return { id, score: 0, isAI, bag, nextQueue: id === "A" && script ? [...script] : [] };
   }
 
   private drawPiece(p: PlayerState): PieceDef {
@@ -231,7 +235,7 @@ export class Game {
     this.postTurn();
 
     // 切换操作者（同屏回合制）
-    if (this.mode === "shared-turn" && !this.gameOver) {
+    if (!this.solo && this.mode === "shared-turn" && !this.gameOver) {
       this.current = this.current === "A" ? "B" : "A";
     }
     if (!this.gameOver) this.spawn();
@@ -276,6 +280,7 @@ export class Game {
   }
 
   private postTurn(): void {
+    if (this.solo) return;
     if (this.mode === "survival" && this.grid.isToppedOut()) {
       this.gameOver = true;
       this.winner = this.current === "A" ? "B" : "A";
@@ -283,6 +288,7 @@ export class Game {
   }
 
   private onTopOut(): void {
+    if (this.solo) return;
     if (this.mode === "survival" || this.mode === "shared-turn") {
       this.gameOver = true;
       this.winner = this.current === "A" ? "B" : "A";
