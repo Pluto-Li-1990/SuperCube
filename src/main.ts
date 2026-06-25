@@ -7,6 +7,9 @@ import { OnlineBattle } from "./ui/onlineBattle";
 import { loadElementArt } from "./ui/elementsArt";
 import { Splash } from "./ui/splash";
 import { TutorialOverlay, hasSeenTutorial } from "./ui/tutorial";
+import { TutorialRun } from "./ui/tutorialRun";
+import { TutorialSelect } from "./ui/tutorialSelect";
+import { TutorialLevel } from "./ui/tutorialLevels";
 import { buildLoadoutBags } from "./core/loadout";
 import { GameMode } from "./core/engine";
 import { AIDifficulty } from "./ai/ai";
@@ -18,12 +21,17 @@ const app = document.getElementById("app")!;
 let playerBag: PieceDef[] = [];
 let workshop: Workshop | null = null;
 let battle: Battle | null = null;
+let tutorialRun: TutorialRun | null = null;
 let difficulty: AIDifficulty = "normal";
 
 function clear(): void {
   if (battle) {
     battle.destroy();
     battle = null;
+  }
+  if (tutorialRun) {
+    tutorialRun.destroy();
+    tutorialRun = null;
   }
   app.innerHTML = "";
 }
@@ -84,7 +92,7 @@ function showLobby(): void {
     new SettingsScreen(app, showLobby);
   };
   document.getElementById("m-tutorial")!.onclick = () => {
-    new TutorialOverlay(() => {});
+    showTutorialSelect();
   };
   wrap.querySelectorAll(".lobby-diff button").forEach((b) => {
     (b as HTMLElement).onclick = () => {
@@ -92,6 +100,22 @@ function showLobby(): void {
       wrap.querySelectorAll(".lobby-diff button").forEach((x) => x.classList.remove("sel"));
       b.classList.add("sel");
     };
+  });
+}
+
+function showTutorialSelect(): void {
+  clear();
+  new TutorialSelect(app, {
+    onBack: showLobby,
+    onStart: startTutorialLevel,
+  });
+}
+
+function startTutorialLevel(level: TutorialLevel): void {
+  clear();
+  tutorialRun = new TutorialRun(app, level, {
+    onExit: showTutorialSelect,
+    onNext: startTutorialLevel,
   });
 }
 

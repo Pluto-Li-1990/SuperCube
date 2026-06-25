@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Game } from "../src/core/engine";
+import { Element, PieceDef } from "../src/core/types";
 
 describe("游戏引擎 回合循环", () => {
   it("初始化：A 先手，回合 0，未结束", () => {
@@ -38,5 +39,20 @@ describe("游戏引擎 回合循环", () => {
     while (g.move(-1)) moved++;
     expect(moved).toBeGreaterThanOrEqual(0);
     expect(g.active!.px).toBeGreaterThanOrEqual(0);
+  });
+
+  it("单人脚本关卡按脚本发牌且不切换操作者", () => {
+    const script: PieceDef[] = [
+      { id: "script_fire", name: "Fire", custom: true, cells: [{ x: 0, y: 0, element: Element.Fire }] },
+    ];
+    const g = new Game({ seed: 1, solo: true, script });
+    expect(g.solo).toBe(true);
+    expect(g.players.A.isAI).toBe(false);
+    expect(g.players.B.isAI).toBe(false);
+    expect(g.active!.def.id).toBe("script_fire");
+    expect(g.active!.cells[0].element).toBe(Element.Fire);
+    g.commitTurn();
+    expect(g.current).toBe("A");
+    expect(g.gameOver).toBe(false);
   });
 });
