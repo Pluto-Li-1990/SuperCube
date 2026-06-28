@@ -5,6 +5,8 @@ import { settings } from "./settings";
 import { audio } from "./audio";
 import { TutorialLevel, LEVELS } from "./tutorialLevels";
 import { markTutorialLevelComplete } from "./tutorialSelect";
+import { ELEMENT_DESC } from "../core/elementInfo";
+import { ELEMENT_ART_URL } from "./elementsArt";
 
 export class TutorialRun {
   private game: Game;
@@ -13,6 +15,7 @@ export class TutorialRun {
   private cell = 26;
   private raf = 0;
   private fallTimer?: ReturnType<typeof setInterval>;
+  private successTimer?: ReturnType<typeof setTimeout>;
   private lockPending = false;
   private done = false;
   private flashes: { x: number; y: number; t: number; destroy: boolean }[] = [];
@@ -79,15 +82,31 @@ export class TutorialRun {
   private showIntro(): void {
     const overlay = document.createElement("div");
     overlay.className = "tut-overlay";
+    const teach = this.level.teach;
+    const card = teach === undefined ? "" : this.elementIntroCard(teach);
     overlay.innerHTML = `
       <div class="tut-card">
         <div class="tut-icon">🎓</div>
         <h2 class="tut-title">${this.level.title}</h2>
         <p class="tut-body">${this.level.intro}</p>
+        ${card}
         <div class="tut-btns"><button class="tut-next" id="tr-intro-ok">知道了</button></div>
       </div>`;
     this.root.append(overlay);
     (overlay.querySelector("#tr-intro-ok") as HTMLElement).onclick = () => overlay.remove();
+  }
+
+  private elementIntroCard(el: Element): string {
+    const info = ELEMENT_DESC[el];
+    const art = ELEMENT_ART_URL[el] ?? "";
+    return `
+      <div class="element-info-card">
+        ${art ? `<img src="${art}" alt="">` : ""}
+        <div>
+          <b>${info.name}</b><span>${info.tagline}</span>
+          <p>${info.detail}</p>
+        </div>
+      </div>`;
   }
 
   private bindTouch(): void {
@@ -220,12 +239,16 @@ export class TutorialRun {
     audio.lock();
     if (res.events.some((e) => e.type !== "weather")) audio.reaction();
     if (res.linesCleared > 0) audio.clear(res.linesCleared);
-    if (this.level.goal(this.game, res)) this.showSuccess();
+    if (this.level.goal(this.game, res)) this.scheduleSuccess();
+  }
+
+  private scheduleSuccess(): void {
+    if (this.done) return;
+    this.done = true;
+    this.successTimer = setTimeout(() => this.showSuccess(), 900);
   }
 
   private showSuccess(): void {
-    if (this.done) return;
-    this.done = true;
     markTutorialLevelComplete(this.level.id);
     const next = LEVELS.find((level) => level.id === this.level.id + 1);
     const overlay = document.createElement("div");
@@ -297,6 +320,7 @@ export class TutorialRun {
   destroy(): void {
     cancelAnimationFrame(this.raf);
     if (this.fallTimer) clearInterval(this.fallTimer);
+    if (this.successTimer) clearTimeout(this.successTimer);
     if (this.keyHandler) window.removeEventListener("keydown", this.keyHandler);
   }
 }

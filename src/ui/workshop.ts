@@ -1,5 +1,6 @@
 import { Element, ELEMENT_NAMES, PLAYABLE_ELEMENTS, PieceCellDef, PieceDef } from "../core/types";
 import { validateCustomPiece, makeCustomPiece, normalizePiece } from "../core/pieces";
+import { ELEMENT_DESC } from "../core/elementInfo";
 import { ELEMENT_COLORS } from "./colors";
 import { drawCellBlock } from "./render";
 
@@ -93,6 +94,11 @@ export class Workshop {
     }
     right.append(pal);
 
+    const desc = document.createElement("div");
+    desc.className = "ws-element-desc";
+    desc.id = "ws-element-desc";
+    right.append(desc);
+
     // 陈列滚轴
     const shelfTitle = document.createElement("h3");
     shelfTitle.textContent = `陈列滚轴 (${this.shelf.length}/${MAX_SHELF})`;
@@ -128,6 +134,14 @@ export class Workshop {
       const el = Number((s as HTMLElement).dataset.el);
       s.classList.toggle("sel", el === this.selected);
     });
+    this.renderElementDesc();
+  }
+
+  private renderElementDesc(): void {
+    const el = document.getElementById("ws-element-desc");
+    if (!el) return;
+    const info = ELEMENT_DESC[this.selected];
+    el.innerHTML = `<b>${info.name}</b><span>${info.tagline}</span><p>${info.detail}</p>`;
   }
 
   private toggle(x: number, y: number): void {

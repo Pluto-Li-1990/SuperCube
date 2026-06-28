@@ -16,6 +16,7 @@ export interface TutorialLevel {
   intro: string;
   goalText: string;
   successText: string;
+  teach?: Element;
   initial: { x: number; y: number; element: Element }[];
   script: PieceDef[];
   goal: (g: Game, last: TurnResult | null) => boolean;
@@ -36,9 +37,10 @@ export const LEVELS: TutorialLevel[] = [
   {
     id: 2,
     title: "第2关 · 火烧连营",
-    intro: "元素相邻（边对边）会反应。把火放到木头旁边，就会点燃它（3 回合后蔓延）。注意：元素反应不得分，只改地形。",
-    goalText: "目标：让火与木头相邻、点燃反应",
-    successText: "成功点燃！反应会延时 3 回合发生。",
+    teach: Element.Fire,
+    intro: "火焰：放到木头旁边（边对边），过几回合会蔓延、烧掉木头。记住元素反应延时发生、而且不得分。",
+    goalText: "目标：把火放到木头旁边，等它蔓延烧掉木头",
+    successText: "看到了吗？火蔓延烧掉了木头——这就是元素反应。",
     // 底部放 3 个木头
     initial: [
       { x: 4, y: 19, element: Element.Wood },
@@ -48,15 +50,13 @@ export const LEVELS: TutorialLevel[] = [
       { x: 1, y: 19, element: Element.Earth },
       { x: 2, y: 19, element: Element.Earth },
     ],
-    script: [tp("Fire", [[0, 0, Element.Fire]])],
-    // 棋盘上出现"带反应计时的火"即算点燃成功
-    goal: (g) => {
-      for (let y = 0; y < g.grid.h; y++)
-        for (let x = 0; x < g.grid.w; x++) {
-          const c = g.grid.get(x, y);
-          if (c.element === Element.Fire && c.timer > 0) return true;
-        }
-      return false;
-    },
+    script: [
+      tp("Fire", [[0, 0, Element.Fire]]),
+      tp("E1", [[0, 0, Element.Earth]]),
+      tp("E2", [[0, 0, Element.Earth]]),
+      tp("E3", [[0, 0, Element.Earth]]),
+      tp("E4", [[0, 0, Element.Earth]]),
+    ],
+    goal: (_g, last) => !!last?.events.some((e) => e.type === "fire-spread"),
   },
 ];
