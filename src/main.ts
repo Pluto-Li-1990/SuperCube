@@ -4,7 +4,7 @@ import { Workshop } from "./ui/workshop";
 import { LoadoutScreen } from "./ui/loadout";
 import { SettingsScreen, settings, saveSettings } from "./ui/settings";
 import { OnlineBattle } from "./ui/onlineBattle";
-import { loadElementArt } from "./ui/elementsArt";
+import { ELEMENT_ART_URL, loadElementArt } from "./ui/elementsArt";
 import { Splash } from "./ui/splash";
 import { TutorialOverlay, hasSeenTutorial } from "./ui/tutorial";
 import { TutorialRun } from "./ui/tutorialRun";
@@ -13,7 +13,7 @@ import { TutorialLevel } from "./ui/tutorialLevels";
 import { buildLoadoutBags } from "./core/loadout";
 import { GameMode } from "./core/engine";
 import { AIDifficulty } from "./ai/ai";
-import { PieceDef } from "./core/types";
+import { Element, PieceDef } from "./core/types";
 
 const app = document.getElementById("app")!;
 
@@ -41,45 +41,33 @@ function showLobby(): void {
   const wrap = document.createElement("div");
   wrap.className = "lobby";
   wrap.innerHTML = `
-    <div class="logo-wrap">
+    <div class="lobby-topbar">
+      <div class="lt-profile"><div class="lt-avatar">🧑</div>
+        <div><div class="lt-name">玩家</div><div class="lt-rank">🏆 未定级</div></div></div>
+      <div class="lt-currency">◆ <b>0</b> 碎片</div>
+    </div>
+    <div class="lobby-hero">
+      <div class="hero-cube">
+        <img src="${ELEMENT_ART_URL[Element.Fire]}"><img src="${ELEMENT_ART_URL[Element.Water]}">
+        <img src="${ELEMENT_ART_URL[Element.Wood]}"><img src="${ELEMENT_ART_URL[Element.Life]}">
+      </div>
       <h1 class="logo">SUPER<span>CUBE</span></h1>
-      <p class="tagline">元素 · 天气 · 相爱相杀的回合俄罗斯方块</p>
+      <p class="tagline">元素 · 天气 · 相爱相杀</p>
     </div>
-    <div class="lobby-stats">
-      <div><b>${playerBag.length}</b><span>工坊棋子</span></div>
-      <div><b>—</b><span>天梯段位</span></div>
-      <div><b>0</b><span>源力碎片</span></div>
-    </div>
-    <div class="lobby-menu">
-      <button class="menu-card pvp" id="m-pvp">
-        <span class="mc-icon">⚔️</span><span class="mc-title">对战 (vs AI)</span>
-        <span class="mc-sub">同屏回合制 · 抢分截胡</span></button>
-      <button class="menu-card" id="m-online">
-        <span class="mc-icon">🌐</span><span class="mc-title">在线对战</span>
-        <span class="mc-sub">真人匹配 · 跨设备</span></button>
-      <button class="menu-card" id="m-survival">
-        <span class="mc-icon">🛡️</span><span class="mc-title">生存竞技</span>
-        <span class="mc-sub">触顶即死</span></button>
-      <button class="menu-card" id="m-timeattack">
-        <span class="mc-icon">⏱️</span><span class="mc-title">限时狂欢</span>
-        <span class="mc-sub">90 秒拼分 · 不死亡</span></button>
-      <button class="menu-card" id="m-workshop">
-        <span class="mc-icon">⚒️</span><span class="mc-title">源力工坊</span>
-        <span class="mc-sub">设计自定义棋子</span></button>
-      <button class="menu-card" id="m-settings">
-        <span class="mc-icon">⚙️</span><span class="mc-title">系统设置</span>
-        <span class="mc-sub">虚影提示 · 下落速度</span></button>
-      <button class="menu-card" id="m-tutorial">
-        <span class="mc-icon">📖</span><span class="mc-title">新手教程</span>
-        <span class="mc-sub">玩法 · 元素 · 天气</span></button>
-    </div>
-    <div class="lobby-diff">
-      AI 难度：
+    <button class="play-btn" id="m-pvp"><span class="pb-icon">⚔</span> 开始对战</button>
+    <div class="lobby-diff">AI 难度
       <button data-d="easy">简单</button>
       <button data-d="normal" class="sel">普通</button>
       <button data-d="hard">困难</button>
     </div>
-    <p class="lobby-foot">MVP 原型 · 键盘 ←→↑↓ 空格 / 触屏按钮操作</p>`;
+    <div class="mode-row">
+      <button class="mode-tile" id="m-online"><span>🌐</span>在线对战</button>
+      <button class="mode-tile" id="m-survival"><span>🛡️</span>生存竞技</button>
+      <button class="mode-tile" id="m-timeattack"><span>⏱️</span>限时狂欢</button>
+      <button class="mode-tile" id="m-workshop"><span>⚒️</span>源力工坊</button>
+      <button class="mode-tile" id="m-tutorial"><span>📖</span>新手教程</button>
+      <button class="mode-tile" id="m-settings"><span>⚙️</span>系统设置</button>
+    </div>`;
   app.append(wrap);
 
   document.getElementById("m-pvp")!.onclick = () => startLoadout("shared-turn");
