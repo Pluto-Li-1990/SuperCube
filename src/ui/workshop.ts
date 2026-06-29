@@ -1,7 +1,7 @@
 import { Element, ELEMENT_NAMES, PLAYABLE_ELEMENTS, PieceCellDef, PieceDef } from "../core/types";
 import { validateCustomPiece, makeCustomPiece, normalizePiece } from "../core/pieces";
 import { ELEMENT_DESC } from "../core/elementInfo";
-import { ELEMENT_COLORS } from "./colors";
+import { ELEMENT_ART_URL } from "./elementsArt";
 import { drawCellBlock } from "./render";
 
 const MAX_SHELF = 9;
@@ -82,9 +82,10 @@ export class Workshop {
     for (const el of PLAYABLE_ELEMENTS) {
       const swatch = document.createElement("button");
       swatch.className = "ws-swatch";
-      swatch.style.background = ELEMENT_COLORS[el];
+      swatch.style.backgroundImage = "url(" + ELEMENT_ART_URL[el] + ")";
+      swatch.style.backgroundSize = "cover";
       swatch.title = ELEMENT_NAMES[el];
-      swatch.textContent = ELEMENT_NAMES[el][0];
+      swatch.textContent = "";
       swatch.onclick = () => {
         this.selected = el;
         this.refreshSwatches(pal);
