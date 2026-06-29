@@ -23,6 +23,7 @@ let workshop: Workshop | null = null;
 let battle: Battle | null = null;
 let tutorialRun: TutorialRun | null = null;
 let difficulty: AIDifficulty = "normal";
+type LobbyMode = "pvp" | "online" | "survival" | "time-attack";
 
 function clear(): void {
   if (battle) {
@@ -54,26 +55,45 @@ function showLobby(): void {
       <h1 class="logo">SUPER<span>CUBE</span></h1>
       <p class="tagline">元素 · 天气 · 相爱相杀</p>
     </div>
-    <button class="play-btn" id="m-pvp"><span class="pb-icon">⚔</span> 开始对战</button>
+    <div class="mode-row battle-modes">
+      <button class="mode-tile sel" id="m-pvp" data-mode="pvp"><span>⚔</span>对战(vs AI)</button>
+      <button class="mode-tile" id="m-online" data-mode="online"><span>🌐</span>在线对战</button>
+      <button class="mode-tile" id="m-survival" data-mode="survival"><span>🛡️</span>生存竞技</button>
+      <button class="mode-tile" id="m-timeattack" data-mode="time-attack"><span>⏱️</span>限时狂欢</button>
+    </div>
     <div class="lobby-diff">AI 难度
       <button data-d="easy">简单</button>
       <button data-d="normal" class="sel">普通</button>
       <button data-d="hard">困难</button>
     </div>
-    <div class="mode-row">
-      <button class="mode-tile" id="m-online"><span>🌐</span>在线对战</button>
-      <button class="mode-tile" id="m-survival"><span>🛡️</span>生存竞技</button>
-      <button class="mode-tile" id="m-timeattack"><span>⏱️</span>限时狂欢</button>
-      <button class="mode-tile" id="m-workshop"><span>⚒️</span>源力工坊</button>
-      <button class="mode-tile" id="m-tutorial"><span>📖</span>新手教程</button>
-      <button class="mode-tile" id="m-settings"><span>⚙️</span>系统设置</button>
+    <button class="play-btn" id="lobby-start"><span class="pb-icon">▶</span> 开始</button>
+    <div class="tool-row">
+      <button class="tool-btn" id="m-workshop" title="源力工坊">⚒️</button>
+      <button class="tool-btn" id="m-tutorial" title="新手教程">📖</button>
+      <button class="tool-btn" id="m-settings" title="系统设置">⚙️</button>
     </div>`;
   app.append(wrap);
 
-  document.getElementById("m-pvp")!.onclick = () => startLoadout("shared-turn");
-  document.getElementById("m-online")!.onclick = () => startOnline();
-  document.getElementById("m-survival")!.onclick = () => startBattle("survival");
-  document.getElementById("m-timeattack")!.onclick = () => startBattle("time-attack");
+  let selectedMode: LobbyMode = "pvp";
+  const diff = wrap.querySelector(".lobby-diff") as HTMLElement;
+  const start = document.getElementById("lobby-start") as HTMLButtonElement;
+  const setMode = (mode: LobbyMode) => {
+    selectedMode = mode;
+    wrap.querySelectorAll(".battle-modes .mode-tile").forEach((b) => {
+      b.classList.toggle("sel", (b as HTMLElement).dataset.mode === mode);
+    });
+    diff.hidden = mode === "online";
+    start.innerHTML = mode === "online" ? `<span class="pb-icon">🌐</span> 开始匹配` : `<span class="pb-icon">▶</span> 开始`;
+  };
+  wrap.querySelectorAll(".battle-modes .mode-tile").forEach((b) => {
+    (b as HTMLElement).onclick = () => setMode((b as HTMLElement).dataset.mode as LobbyMode);
+  });
+  start.onclick = () => {
+    if (selectedMode === "pvp") startLoadout("shared-turn");
+    else if (selectedMode === "online") startOnline();
+    else if (selectedMode === "survival") startBattle("survival");
+    else startBattle("time-attack");
+  };
   document.getElementById("m-workshop")!.onclick = () => showWorkshop();
   document.getElementById("m-settings")!.onclick = () => {
     clear();
