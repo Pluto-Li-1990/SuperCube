@@ -142,6 +142,13 @@ button { cursor: pointer; font-family: inherit; }
   display: flex; align-items: center; justify-content: center; color: #0a0a0a;
 }
 .ws-swatch.sel { border-color: #fff; transform: scale(1.05); }
+.ws-element-desc {
+  background: rgba(28,33,48,.72); border: 1px solid rgba(255,255,255,.07); border-radius: 12px;
+  padding: 12px; margin: -8px 0 18px; display: flex; flex-direction: column; gap: 4px;
+}
+.ws-element-desc b { font-size: 15px; }
+.ws-element-desc span { color: var(--accent); font-size: 12px; font-weight: 700; }
+.ws-element-desc p { margin: 0; color: #c3ccd9; font-size: 12px; line-height: 1.55; }
 .ws-shelf { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .ws-shelf-item { background: var(--panel); border-radius: 10px; padding: 8px; text-align: center; position: relative; font-size: 11px; }
 .ws-shelf-item canvas { border-radius: 6px; }
@@ -229,6 +236,14 @@ button { cursor: pointer; font-family: inherit; }
 .tut-icon { font-size: 48px; }
 .tut-title { margin: 0; font-size: 22px; }
 .tut-body { margin: 0; color: #c3ccd9; font-size: 14px; line-height: 1.7; text-align: left; }
+.element-info-card {
+  display: flex; gap: 12px; align-items: flex-start; background: rgba(28,33,48,.82);
+  border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 12px; text-align: left;
+}
+.element-info-card img { width: 54px; height: 54px; border-radius: 12px; flex: 0 0 auto; box-shadow: 0 8px 18px rgba(0,0,0,.3); }
+.element-info-card b { display: inline-block; margin-right: 8px; font-size: 16px; }
+.element-info-card span { color: var(--accent); font-size: 12px; font-weight: 800; }
+.element-info-card p { margin: 5px 0 0; color: #c3ccd9; font-size: 12px; line-height: 1.55; }
 .tut-dots { display: flex; gap: 6px; justify-content: center; margin: 4px 0; }
 .tut-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--panel2); }
 .tut-dots i.on { background: var(--accent); width: 18px; border-radius: 4px; }
