@@ -20,7 +20,7 @@ html, body {
 button { cursor: pointer; font-family: inherit; }
 
 /* ===== 大厅 ===== */
-.lobby { position: relative; min-height: 100vh; display: flex; flex-direction: column; padding: 12px 16px 18px; gap: 10px; overflow-y: auto; }
+.lobby { position: relative; min-height: 100vh; display: flex; flex-direction: column; padding: 10px 16px 16px; gap: 9px; overflow-y: auto; }
 .logo {
   font-size: 56px; font-weight: 900; letter-spacing: 2px; margin: 0;
   background: linear-gradient(135deg, #36a3ff, #c77dff, #ffd23f);
@@ -28,17 +28,17 @@ button { cursor: pointer; font-family: inherit; }
 }
 .logo span { display: inline; }
 .lobby-topbar { display: flex; align-items: center; justify-content: space-between; }
-.lt-profile { display: flex; align-items: center; gap: 10px; background: rgba(20,24,35,.6); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,.07); border-radius: 999px; padding: 6px 16px 6px 6px; }
-.lt-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg,#36a3ff,#c77dff); display:flex; align-items:center; justify-content:center; font-size: 20px; }
+.lt-profile { display: flex; align-items: center; gap: 9px; background: rgba(20,24,35,.6); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,.07); border-radius: 999px; padding: 5px 14px 5px 5px; }
+.lt-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg,#36a3ff,#c77dff); display:flex; align-items:center; justify-content:center; font-size: 19px; }
 .lt-name { font-weight: 700; font-size: 14px; } .lt-rank { font-size: 11px; color: #ffd23f; }
 .lt-currency { background: rgba(20,24,35,.6); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,.07); border-radius: 999px; padding: 9px 16px; font-size: 12px; color:#9fd0ff; } .lt-currency b { color:#fff; }
-.lobby-hero { flex: 0 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; padding: 4px 0 2px; }
-.hero-cube { display: grid; grid-template-columns: repeat(2, 44px); grid-template-rows: repeat(2, 44px); gap: 5px; transform: rotate(-6deg); filter: drop-shadow(0 8px 26px rgba(86,140,255,.45)); animation: heroFloat 4s ease-in-out infinite; }
-.hero-cube img { width: 44px; height: 44px; border-radius: 12px; }
+.lobby-hero { flex: 0 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; padding: 2px 0 0; }
+.hero-cube { display: grid; grid-template-columns: repeat(2, 40px); grid-template-rows: repeat(2, 40px); gap: 4px; transform: rotate(-6deg); filter: drop-shadow(0 8px 26px rgba(86,140,255,.45)); animation: heroFloat 4s ease-in-out infinite; }
+.hero-cube img { width: 40px; height: 40px; border-radius: 11px; }
 @keyframes heroFloat { 50% { transform: rotate(-6deg) translateY(-9px); } }
-.lobby .logo { font-size: 38px; margin: 6px 0 0; background-size: 200% auto; animation: logoShine 6s ease infinite; }
+.lobby .logo { font-size: 36px; margin: 5px 0 0; background-size: 200% auto; animation: logoShine 6s ease infinite; }
 .lobby .tagline { color: var(--muted); font-size: 13px; margin: 0; }
-.play-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border: none; border-radius: 18px; font-size: 20px; font-weight: 800; color: #06121f; background: linear-gradient(120deg,#5aa8ff,#36a3ff); box-shadow: 0 8px 28px rgba(54,163,255,.5); position: relative; overflow: hidden; transition: transform .12s; }
+.play-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 15px; border: none; border-radius: 18px; font-size: 20px; font-weight: 800; color: #06121f; background: linear-gradient(120deg,#5aa8ff,#36a3ff); box-shadow: 0 8px 28px rgba(54,163,255,.5); position: relative; overflow: hidden; transition: transform .12s; }
 .play-btn::after { content:""; position:absolute; inset:0; background: linear-gradient(120deg, transparent, rgba(255,255,255,.35), transparent); transform: translateX(-120%); animation: playShine 3s ease infinite; }
 @keyframes playShine { 60%,100% { transform: translateX(120%); } }
 .play-btn:active { transform: scale(.97); } .pb-icon { font-size: 22px; }
@@ -46,11 +46,11 @@ button { cursor: pointer; font-family: inherit; }
 .lobby-diff button { background: rgba(28,33,48,.6); border:1px solid transparent; color:var(--text); padding:6px 14px; border-radius:999px; }
 .lobby-diff button.sel { border-color: var(--accent); color: var(--accent); }
 .mode-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.mode-tile { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; min-height: 72px; padding:10px 4px; border-radius:14px; background: rgba(28,33,48,.55); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,.07); color:var(--text); font-size:12px; }
+.mode-tile { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; min-height: 68px; padding:9px 4px; border-radius:14px; background: rgba(28,33,48,.55); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,.07); color:var(--text); font-size:12px; }
 .mode-tile span { font-size:22px; } .mode-tile:active { transform: scale(.96); }
 .mode-tile.sel { border-color: rgba(90,168,255,.82); box-shadow: 0 0 18px rgba(54,163,255,.28); color: #dff1ff; }
-.tool-row { display: flex; justify-content: center; gap: 12px; }
-.tool-btn { width: 44px; height: 44px; display:flex; align-items:center; justify-content:center; border-radius: 14px; background: rgba(28,33,48,.55); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,.07); color:var(--text); font-size:22px; }
+.tool-row { display: flex; justify-content: center; gap: 14px; }
+.tool-btn { width: 52px; height: 52px; display:flex; align-items:center; justify-content:center; border-radius: 16px; background: rgba(28,33,48,.62); backdrop-filter: blur(10px); border:1px solid rgba(255,255,255,.09); color:var(--text); font-size:25px; box-shadow: 0 6px 18px rgba(0,0,0,.18); }
 .tool-btn:active { transform: scale(.96); }
 
 /* ===== 对战 ===== */

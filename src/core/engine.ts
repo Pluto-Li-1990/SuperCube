@@ -116,7 +116,7 @@ export class Game {
     if (r < 77) return Element.Fire;
     if (r < 87) return Element.Metal;
     if (r < 93) return Element.Ice;
-    if (r < 97) return Element.Sticky;
+    if (r < 99) return Element.Sticky;
     return Element.Life;
   }
 
