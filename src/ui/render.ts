@@ -213,8 +213,29 @@ export function drawCellBlock(
   ctx.globalAlpha = 1;
 }
 
+function drawLifeReadyGlow(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: number): void {
+  const now = typeof performance === "undefined" ? Date.now() : performance.now();
+  const pulse = (Math.sin(now / 180) + 1) / 2;
+  const inset = 1.5 + pulse * 2;
+  const r = Math.max(3, size * 0.24);
+  ctx.save();
+  ctx.globalAlpha = 0.62 + pulse * 0.28;
+  ctx.strokeStyle = "#eaff7a";
+  ctx.lineWidth = Math.max(2, size * 0.08);
+  ctx.shadowColor = "#d7ff57";
+  ctx.shadowBlur = size * (0.42 + pulse * 0.38);
+  roundRect(ctx, cx + inset, cy + inset, size - inset * 2, size - inset * 2, r);
+  ctx.stroke();
+  ctx.globalAlpha = 0.28 + pulse * 0.18;
+  ctx.fillStyle = "#f6ff9a";
+  roundRect(ctx, cx + size * 0.18, cy + size * 0.14, size * 0.64, size * 0.16, size * 0.08);
+  ctx.fill();
+  ctx.restore();
+}
+
 export function drawGrid(ctx: CanvasRenderingContext2D, grid: Grid, opts: DrawOpts): void {
   const { ox, oy, cell } = opts;
+  const lifeReady = grid.countElement(Element.Life) >= 5;
   ctx.fillStyle = "#0c0e14";
   ctx.fillRect(ox, oy, grid.w * cell, grid.h * cell);
   ctx.strokeStyle = "rgba(255,255,255,0.04)";
@@ -234,7 +255,12 @@ export function drawGrid(ctx: CanvasRenderingContext2D, grid: Grid, opts: DrawOp
   for (let y = 0; y < grid.h; y++) {
     for (let x = 0; x < grid.w; x++) {
       const c = grid.get(x, y);
-      if (!isEmpty(c)) drawCellBlock(ctx, ox + x * cell, oy + y * cell, cell, c);
+      if (!isEmpty(c)) {
+        const cx = ox + x * cell;
+        const cy = oy + y * cell;
+        drawCellBlock(ctx, cx, cy, cell, c);
+        if (lifeReady && c.element === Element.Life) drawLifeReadyGlow(ctx, cx, cy, cell);
+      }
     }
   }
 }
