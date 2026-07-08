@@ -11,6 +11,7 @@
 - TestFlight 准备清单：`APP_STORE_TESTFLIGHT_CHECKLIST.md`
 - 隐私政策：`PRIVACY_POLICY.md` / `PRIVACY_POLICY.html`
 - 服务器与部署方案：`SERVER_PLAN.md`
+- TestFlight 分批计划：`TESTFLIGHT_BATCH_PLAN.md`
 
 ## 当前策略
 
@@ -20,6 +21,7 @@
 - 当前线上前端需要固定独立部署源，避免 iOS-only `main` 触发错误重部署。
 - Debug 构建关闭 Debug Dylib 注入，降低 beta iOS 真机启动风险。
 - Bundle ID：`com.pluto.supercube`
+- 当前版本：`1.0 (3)`
 - 最低系统：iOS 15.0
 
 ## 本地验证

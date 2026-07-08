@@ -9,17 +9,18 @@
 - App 名称：SuperCube
 - Bundle ID：`com.pluto.supercube`
 - Version：`1.0`
-- Build：`2`
+- Build：`3`
 - 最低系统：iOS 15.0
 - 当前壳：UIKit + WKWebView
 - 当前加载：线上 `https://super-cube-rho.vercel.app`
 - 当前分支：`main`
 - 当前提交：以 `main` 最新提交为准，发布前用 `git log -1 --oneline` 确认。
 - GitHub 主线：PR #16 已合并，`Pluto-Li-1990/SuperCube` 的 `main` 已切换为 iOS 正式工程。
-- 最新构建验证：`xcodebuild ... CODE_SIGNING_ALLOWED=NO build` 通过，结果 `BUILD SUCCEEDED`。
+- 最新构建验证：Batch 0.1 候选包 `Release` + `CODE_SIGNING_ALLOWED=NO` 构建通过，结果 `BUILD SUCCEEDED`。
 - 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明原生壳不追踪、不采集数据、不使用需声明的 Required Reason API。
 - 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，仍需部署为公开 URL 后填入 App Store Connect。
 - 服务器方案：已生成 `SERVER_PLAN.md`。
+- 分批测试计划：已生成 `TESTFLIGHT_BATCH_PLAN.md`，当前优先准备 Batch 0.1 启动验证包。
 
 ## 2. 必须完成
 
@@ -53,7 +54,7 @@
 
 - 若 App Store Connect 已经占用或创建了其他 Bundle ID，需要把工程和清单同步成同一个值。
 - 增加离线兜底，避免线上地址或网络异常时 App 首屏不可用。
-- 将版本号策略固定：`MARKETING_VERSION = 1.0`，每次上传递增 `CURRENT_PROJECT_VERSION`。
+- 版本号策略已固定：`MARKETING_VERSION = 1.0`，每次上传递增 `CURRENT_PROJECT_VERSION`。
 - 部署隐私政策公开页面链接，并填入 App Store Connect。
 - 固定 Web 前端部署源，避免 Vercel 从当前 iOS-only `main` 重新部署导致线上入口损坏。
 - 确认线上网页入口 `https://super-cube-rho.vercel.app` 在真机网络下稳定可访问；本地检查曾出现 10 秒超时、20 秒内返回 200，说明链路需要继续加固。
