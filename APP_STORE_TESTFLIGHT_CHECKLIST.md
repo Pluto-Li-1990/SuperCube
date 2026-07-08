@@ -1,6 +1,6 @@
 # SuperCube 上架测试准备清单
 
-更新时间：2026-07-07
+更新时间：2026-07-08
 
 正式工程：`SuperCube.xcodeproj`
 
@@ -13,8 +13,10 @@
 - 最低系统：iOS 15.0
 - 当前壳：UIKit + WKWebView
 - 当前加载：线上 `https://super-cube-rho.vercel.app`
-- 当前分支：`feat/ios-real-device-loading`
-- 当前提交：`b5baf5a Fix iOS real-device web loading`
+- 当前分支：`main`
+- 当前提交：`21b73ef Merge iOS official project`
+- GitHub 主线：PR #16 已合并，`Pluto-Li-1990/SuperCube` 的 `main` 已切换为 iOS 正式工程。
+- 最新构建验证：`xcodebuild ... CODE_SIGNING_ALLOWED=NO build` 通过，结果 `BUILD SUCCEEDED`。
 - 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明原生壳不追踪、不采集数据、不使用需声明的 Required Reason API。
 
 ## 2. 必须完成
@@ -50,7 +52,6 @@
 - 若 App Store Connect 已经占用或创建了其他 Bundle ID，需要把工程和清单同步成同一个值。
 - 增加离线兜底，避免线上地址或网络异常时 App 首屏不可用。
 - 将版本号策略固定：`MARKETING_VERSION = 1.0`，每次上传递增 `CURRENT_PROJECT_VERSION`。
-- 把正式工程推到 GitHub 远端，而不是只保留本地分支。
 - 补一份隐私政策页面链接，哪怕当前不采集数据也建议准备。
 
 ## 4. 截图素材
