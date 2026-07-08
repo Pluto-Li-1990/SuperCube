@@ -1,0 +1,78 @@
+# SuperCube 上架测试准备清单
+
+更新时间：2026-07-07
+
+正式工程：`SuperCube.xcodeproj`
+
+## 1. 当前工程状态
+
+- App 名称：SuperCube
+- Bundle ID：`com.pluto.supercube`
+- Version：`1.0`
+- Build：`2`
+- 最低系统：iOS 15.0
+- 当前壳：UIKit + WKWebView
+- 当前加载：线上 `https://super-cube-rho.vercel.app`
+- 当前分支：`feat/ios-real-device-loading`
+- 当前提交：`b5baf5a Fix iOS real-device web loading`
+- 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明原生壳不追踪、不采集数据、不使用需声明的 Required Reason API。
+
+## 2. 必须完成
+
+- 在 Apple Developer / App Store Connect 中创建并确认 Bundle ID：`com.pluto.supercube`。
+- 确认 Apple Developer Team `AD2CV88XTC` 与 App Store Connect 账号可用。
+- 在 App Store Connect 创建 App 记录。
+- Archive 并上传第一个 TestFlight build。
+- 填写 TestFlight 测试信息：
+  - Beta App Description
+  - What to Test
+  - Feedback Email
+  - Demo account / login note：当前无需登录。
+- 填写出口合规：
+  - 当前仅 HTTPS/WKWebView，通常按标准加密用途填写。
+- 填写 App Privacy：
+  - 当前原生壳未请求系统权限。
+  - 若线上 Web 不采集用户数据、无广告追踪、无账号系统，可按“不收集数据”准备。
+  - 如果联网对战后引入用户 ID、房间 ID、日志、统计或广告 SDK，需要重新填。
+- 准备截图与商店文案。
+- 真机测试至少覆盖：
+  - 首次启动
+  - 弱网/断网
+  - 从后台返回
+  - 横竖屏/安全区
+  - PVE 对战
+  - 在线匹配失败提示
+  - 工坊
+  - 教学
+
+## 3. 建议在 TestFlight 前修
+
+- 若 App Store Connect 已经占用或创建了其他 Bundle ID，需要把工程和清单同步成同一个值。
+- 增加离线兜底，避免线上地址或网络异常时 App 首屏不可用。
+- 将版本号策略固定：`MARKETING_VERSION = 1.0`，每次上传递增 `CURRENT_PROJECT_VERSION`。
+- 把正式工程推到 GitHub 远端，而不是只保留本地分支。
+- 补一份隐私政策页面链接，哪怕当前不采集数据也建议准备。
+
+## 4. 截图素材
+
+建议先准备这些画面：
+
+- 大厅主界面
+- 单人对战棋盘
+- 元素反应/特效画面
+- 教学关卡
+- 工坊
+
+## 5. 暂缓到正式上线前
+
+- Game Center
+- 付费 / 内购
+- 广告
+- 账号系统
+- 跨平台 Android 壳
+- 联网服务器正式 SLA 与监控
+
+## 6. 参考
+
+- Apple TestFlight 流程：提供测试信息、上传 build、邀请内外部测试者、收集反馈。
+- 外部 TestFlight 测试第一次 build 通常需要 Beta App Review。
