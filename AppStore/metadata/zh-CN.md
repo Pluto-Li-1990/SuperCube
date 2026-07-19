@@ -57,9 +57,10 @@ SuperCube 首个 iOS 测试版本，包含大厅、单人对战、生存竞技�
 
 ## 待补 URL
 
-- 隐私政策 URL：待部署 `PRIVACY_POLICY.html` 后填写
-- 技术支持 URL：建议上线一个包含联系邮箱的公开页面
-- 营销 URL：可选，正式宣传站完成后再填
+- 隐私政策 URL：`https://pluto-li-1990.github.io/SuperCube/privacy.html`
+- 隐私政策备用 URL：`https://github.com/Pluto-Li-1990/SuperCube/blob/main/docs/privacy.md`
+- 技术支持 URL：`https://github.com/Pluto-Li-1990/SuperCube/issues`
+- 营销 URL：`https://super-cube-rho.vercel.app`
 
 ## 官方字段限制备忘
 
