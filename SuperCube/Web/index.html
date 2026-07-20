@@ -373,25 +373,90 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     });
   };
 
+  f.bgmNoise = function bgmNoise(duration, opts = {}) {
+    if (!y.bgm || document.hidden) return;
+    const ctx = this.ensure();
+    if (!ctx) return;
+
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) {
+      const fade = 1 - i / length;
+      data[i] = (Math.random() * 2 - 1) * Math.pow(fade, opts.curve || 2.4);
+    }
+
+    const start = ctx.currentTime + (opts.delay || 0);
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = buffer;
+    filter.type = opts.filterType || "bandpass";
+    filter.frequency.setValueAtTime(opts.filter || 1200, start);
+    filter.Q.setValueAtTime(opts.q || 1.1, start);
+    gain.gain.setValueAtTime(opts.gain || 0.025, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.bgmGain);
+    source.start(start);
+    source.stop(start + duration + 0.02);
+  };
+
   f.startBgm = function startBgm() {
     if (this.bgmTimer || typeof window === "undefined") return;
     this.ensure();
-    const melody = [392, 493.88, 587.33, 659.25, 587.33, 493.88, 440, 392, 329.63, 392, 493.88, 587.33, 523.25, 493.88, 392, 329.63];
-    const bass = [98, 130.81, 146.83, 164.81];
+    const melody = [
+      293.66, 392, 440, 523.25, 440, 392, 349.23, 293.66,
+      293.66, 349.23, 392, 587.33, 523.25, 440, 392, 349.23,
+      293.66, 392, 440, 659.25, 587.33, 523.25, 440, 392,
+      349.23, 440, 523.25, 587.33, 523.25, 440, 392, 293.66
+    ];
+    const bass = [73.42, 98, 116.54, 130.81, 98, 87.31, 73.42, 65.41];
+    const stabs = [146.83, 174.61, 220, 261.63];
     const tick = () => {
       if (!y.bgm || document.hidden) return;
       const step = this.bgmStep++ || 0;
+      const beat = step % 16;
       const note = melody[step % melody.length];
-      this.tone(note, 0.32, { channel: "bgm", type: "triangle", gain: 0.055, filter: 2400 });
-      if (step % 2 === 0) {
-        this.tone(note * 2, 0.12, { channel: "bgm", type: "sine", gain: 0.016, delay: 0.14, filter: 4300 });
+
+      if (beat === 0 || beat === 8) {
+        this.tone(74, 0.22, { channel: "bgm", type: "sine", gain: 0.07, slideTo: 38, filter: 420 });
+        this.bgmNoise(0.08, { gain: 0.018, filter: 160, q: 0.8 });
       }
+
+      if (beat === 4 || beat === 12) {
+        this.tone(96, 0.12, { channel: "bgm", type: "triangle", gain: 0.038, slideTo: 62, filter: 520 });
+        this.bgmNoise(0.055, { gain: 0.02, filter: 950, q: 1.6, curve: 3 });
+      }
+
+      if (beat === 2 || beat === 6 || beat === 10 || beat === 14) {
+        this.bgmNoise(0.035, { gain: 0.012, filter: 2600, q: 0.9, curve: 4 });
+      }
+
+      if (step % 2 === 0) {
+        this.tone(note, 0.16, { channel: "bgm", type: "sawtooth", gain: 0.038, slideTo: note * 1.006, filter: 2100, attack: 0.004 });
+        this.tone(note * 2, 0.075, { channel: "bgm", type: "triangle", gain: 0.012, delay: 0.08, filter: 4300, attack: 0.004 });
+      } else if (beat === 7 || beat === 15) {
+        this.tone(note * 1.5, 0.11, { channel: "bgm", type: "triangle", gain: 0.023, filter: 3600, attack: 0.004 });
+      }
+
       if (step % 4 === 0) {
-        this.tone(bass[Math.floor(step / 4) % bass.length], 0.82, { channel: "bgm", type: "sine", gain: 0.042, filter: 700 });
+        const root = bass[Math.floor(step / 4) % bass.length];
+        this.tone(root, 0.78, { channel: "bgm", type: "sine", gain: 0.045, filter: 620 });
+        this.tone(root * 2, 0.28, { channel: "bgm", type: "triangle", gain: 0.018, filter: 900, delay: 0.03 });
+      }
+
+      if (beat === 0 || beat === 6 || beat === 10) {
+        const stab = stabs[Math.floor(step / 8) % stabs.length];
+        this.tone(stab, 0.18, { channel: "bgm", type: "sawtooth", gain: 0.025, filter: 1450, attack: 0.006 });
+        this.tone(stab * 1.5, 0.16, { channel: "bgm", type: "triangle", gain: 0.012, filter: 2600, delay: 0.015 });
       }
     };
     tick();
-    this.bgmTimer = setInterval(tick, 430);
+    this.bgmTimer = setInterval(tick, 250);
   };
 
   f.stopBgm = function stopBgm() {
