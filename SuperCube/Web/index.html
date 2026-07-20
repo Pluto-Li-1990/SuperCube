@@ -193,12 +193,12 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   if (typeof window === "undefined") return;
   if (typeof f === "undefined" || typeof y === "undefined") return;
 
-  const VERSION_KEY = "supercube.audio.v2";
+  const VERSION_KEY = "supercube.audio.safe.v1";
 
   try {
     if (localStorage.getItem(VERSION_KEY) !== "1") {
       y.sfx = true;
-      y.bgm = true;
+      y.bgm = false;
       localStorage.setItem(VERSION_KEY, "1");
       if (typeof W === "function") W();
     }
@@ -431,7 +431,9 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     }
   });
 
-  f.syncBgm();
+  try {
+    f.stopBgm();
+  } catch {}
 })();
 </script>
 </body>
