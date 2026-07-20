@@ -16,12 +16,12 @@
 ## 当前策略
 
 - iOS 原生壳使用 UIKit + WKWebView。
-- 默认加载线上地址：`https://super-cube-rho.vercel.app`
+- 默认优先加载 App 内置本地 Web 资源；本地资源缺失、超时或未渲染时再尝试线上地址：`https://super-cube-rho.vercel.app`
 - 启动时显示加载状态；超时或失败时显示错误和重新加载按钮，避免纯黑屏。
 - 当前线上前端需要固定独立部署源，避免 iOS-only `main` 触发错误重部署。
 - Debug 构建关闭 Debug Dylib 注入，降低 beta iOS 真机启动风险。
 - Bundle ID：`com.pluto.supercube`
-- 当前版本：`1.0 (3)`
+- 当前版本：`1.0 (4)`
 - 最低系统：iOS 15.0
 
 ## 本地验证

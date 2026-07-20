@@ -2,15 +2,16 @@ import UIKit
 import WebKit
 
 final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
-    private let url = URL(string: "https://super-cube-rho.vercel.app")!
+    private let remoteURL = URL(string: "https://super-cube-rho.vercel.app")!
     private var webView: WKWebView!
     private let loadingView = UIActivityIndicatorView(style: .large)
     private let statusLabel = UILabel()
     private let errorLabel = UILabel()
     private let retryButton = UIButton(type: .system)
-    private var softRevealWorkItem: DispatchWorkItem?
     private var hardTimeoutWorkItem: DispatchWorkItem?
+    private var renderCheckWorkItem: DispatchWorkItem?
     private var loadID = 0
+    private var loadingLocalWeb = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -88,53 +89,78 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
     }
 
     private func loadGame() {
+        if let indexURL = bundledIndexURL() {
+            let webRootURL = indexURL.deletingLastPathComponent()
+            prepareForLoad(message: "正在加载本地 SuperCube...", loadingLocalWeb: true)
+            print("SuperCube loading local: \(indexURL.absoluteString)")
+            webView.loadFileURL(indexURL, allowingReadAccessTo: webRootURL)
+            scheduleTimeout(seconds: 6)
+            return
+        }
+
+        loadRemote(reason: "Local Web bundle missing")
+    }
+
+    private func bundledIndexURL() -> URL? {
+        if let nestedURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "Web") {
+            return nestedURL
+        }
+        return Bundle.main.url(forResource: "index", withExtension: "html")
+    }
+
+    private func loadRemote(reason: String) {
+        prepareForLoad(message: "正在加载在线 SuperCube...", loadingLocalWeb: false)
+        print("SuperCube loading remote: \(remoteURL.absoluteString), reason: \(reason)")
+
+        var request = URLRequest(url: remoteURL)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 20
+        webView.load(request)
+        scheduleTimeout(seconds: 15)
+    }
+
+    private func prepareForLoad(message: String, loadingLocalWeb: Bool) {
         loadID += 1
-        let currentLoadID = loadID
-        softRevealWorkItem?.cancel()
         hardTimeoutWorkItem?.cancel()
+        renderCheckWorkItem?.cancel()
+        self.loadingLocalWeb = loadingLocalWeb
         errorLabel.isHidden = true
         retryButton.isHidden = true
+        statusLabel.text = message
         statusLabel.isHidden = false
         loadingView.startAnimating()
-        print("SuperCube loading: \(url.absoluteString)")
+    }
 
-        var request = URLRequest(url: url)
-        request.cachePolicy = .reloadIgnoringLocalCacheData
-        request.timeoutInterval = 15
-        webView.load(request)
-
-        let softReveal = DispatchWorkItem { [weak self] in
-            guard let self, self.loadID == currentLoadID else { return }
-            self.loadingView.stopAnimating()
-            self.statusLabel.isHidden = true
-        }
-        softRevealWorkItem = softReveal
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: softReveal)
-
+    private func scheduleTimeout(seconds: TimeInterval) {
+        let currentLoadID = loadID
         let hardTimeout = DispatchWorkItem { [weak self] in
             guard let self, self.loadID == currentLoadID else { return }
-            self.webView.evaluateJavaScript("document.readyState") { result, _ in
+            self.webView.evaluateJavaScript("document.readyState") { [weak self] result, _ in
+                guard let self, self.loadID == currentLoadID else { return }
                 let readyState = result as? String ?? "unknown"
                 if readyState == "complete" || readyState == "interactive" {
-                    self.loadingView.stopAnimating()
-                    self.statusLabel.isHidden = true
+                    self.checkRenderedPage(loadID: currentLoadID)
                     return
                 }
-                self.showMessage("SuperCube 加载超时\n当前网络可以访问 App，但网页没有完成渲染。\nreadyState: \(readyState)")
+                if self.loadingLocalWeb {
+                    self.loadRemote(reason: "Local Web timeout, readyState: \(readyState)")
+                } else {
+                    self.showMessage("SuperCube 加载超时\n当前网络可以访问 App，但在线页面没有完成渲染。\nreadyState: \(readyState)")
+                }
             }
         }
         hardTimeoutWorkItem = hardTimeout
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: hardTimeout)
+        DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: hardTimeout)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        softRevealWorkItem?.cancel()
         hardTimeoutWorkItem?.cancel()
-        loadingView.stopAnimating()
-        statusLabel.isHidden = true
-        errorLabel.isHidden = true
-        retryButton.isHidden = true
-        print("SuperCube loaded")
+        let currentLoadID = loadID
+        let renderCheck = DispatchWorkItem { [weak self] in
+            self?.checkRenderedPage(loadID: currentLoadID)
+        }
+        renderCheckWorkItem = renderCheck
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: renderCheck)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -146,9 +172,41 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
     }
 
     private func show(_ error: Error) {
-        softRevealWorkItem?.cancel()
         hardTimeoutWorkItem?.cancel()
-        showMessage("SuperCube failed to load\n\(error.localizedDescription)")
+        renderCheckWorkItem?.cancel()
+        if loadingLocalWeb {
+            loadRemote(reason: "Local Web failed: \(error.localizedDescription)")
+        } else {
+            showMessage("SuperCube failed to load\n\(error.localizedDescription)")
+        }
+    }
+
+    private func checkRenderedPage(loadID currentLoadID: Int) {
+        guard loadID == currentLoadID else { return }
+        let script = """
+        (() => {
+          const app = document.getElementById('app');
+          return Boolean(app && app.childNodes && app.childNodes.length > 0);
+        })()
+        """
+        webView.evaluateJavaScript(script) { [weak self] result, _ in
+            guard let self, self.loadID == currentLoadID else { return }
+            let rendered = result as? Bool ?? false
+            if rendered {
+                self.loadingView.stopAnimating()
+                self.statusLabel.isHidden = true
+                self.errorLabel.isHidden = true
+                self.retryButton.isHidden = true
+                print("SuperCube rendered: \(self.loadingLocalWeb ? "local" : "remote")")
+                return
+            }
+
+            if self.loadingLocalWeb {
+                self.loadRemote(reason: "Local Web finished but app root is empty")
+            } else {
+                self.showMessage("SuperCube 页面已加载，但没有渲染内容。\n请检查网络，或稍后点击重新加载。")
+            }
+        }
     }
 
     private func showMessage(_ message: String) {
