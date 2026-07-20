@@ -9,14 +9,14 @@
 - App 名称：SuperCube
 - Bundle ID：`com.pluto.supercube`
 - Version：`1.0`
-- Build：`3`
+- Build：`5`
 - 最低系统：iOS 15.0
 - 当前壳：UIKit + WKWebView
-- 当前加载：线上 `https://super-cube-rho.vercel.app`
-- 当前分支：`main`
-- 当前提交：以 `main` 最新提交为准，发布前用 `git log -1 --oneline` 确认。
+- 当前加载：优先 App 内置单文件 Web 资源；仅本地资源缺失时备用线上 `https://super-cube-rho.vercel.app`
+- 当前分支：`feat/app-store-assets`，合并后以 `main` 最新提交为准。
+- 当前提交：发布前用 `git log -1 --oneline` 确认。
 - GitHub 主线：PR #16 已合并，`Pluto-Li-1990/SuperCube` 的 `main` 已切换为 iOS 正式工程。
-- 最新构建验证：Batch 0.1 候选包 `Release` + `CODE_SIGNING_ALLOWED=NO` 构建通过，结果 `BUILD SUCCEEDED`。
+- 最新构建验证：Build 5 内置单文件 Web 修复包 `Release` + `CODE_SIGNING_ALLOWED=NO` 真机目标构建通过；模拟器构建通过并已启动进大厅。
 - 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明原生壳不追踪、不采集数据、不使用需声明的 Required Reason API。
 - 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，仍需部署为公开 URL 后填入 App Store Connect。
 - 服务器方案：已生成 `SERVER_PLAN.md`。
@@ -53,7 +53,7 @@
 ## 3. 建议在 TestFlight 前修
 
 - 若 App Store Connect 已经占用或创建了其他 Bundle ID，需要把工程和清单同步成同一个值。
-- 增加离线兜底，避免线上地址或网络异常时 App 首屏不可用。
+- 已将 App 内置 Web 改为单文件离线页，并由原生壳直接注入 WKWebView，避免真机 `file://` 模块脚本加载差异导致首屏不可用。
 - 版本号策略已固定：`MARKETING_VERSION = 1.0`，每次上传递增 `CURRENT_PROJECT_VERSION`。
 - 部署隐私政策公开页面链接，并填入 App Store Connect。
 - 固定 Web 前端部署源，避免 Vercel 从当前 iOS-only `main` 重新部署导致线上入口损坏。
