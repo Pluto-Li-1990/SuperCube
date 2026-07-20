@@ -166,12 +166,16 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         hardTimeoutWorkItem?.cancel()
+        if loadingLocalWeb {
+            loadingView.stopAnimating()
+            statusLabel.isHidden = true
+        }
         let currentLoadID = loadID
         let renderCheck = DispatchWorkItem { [weak self] in
             self?.checkRenderedPage(loadID: currentLoadID)
         }
         renderCheckWorkItem = renderCheck
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: renderCheck)
+        DispatchQueue.main.asyncAfter(deadline: .now() + (loadingLocalWeb ? 0.25 : 1.2), execute: renderCheck)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
