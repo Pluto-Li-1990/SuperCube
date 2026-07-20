@@ -54,12 +54,18 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
         view.addSubview(errorLabel)
 
         retryButton.translatesAutoresizingMaskIntoConstraints = false
-        retryButton.setTitle("重新加载", for: .normal)
-        retryButton.setTitleColor(.white, for: .normal)
-        retryButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        retryButton.backgroundColor = UIColor.white.withAlphaComponent(0.18)
-        retryButton.layer.cornerRadius = 12
-        retryButton.contentEdgeInsets = UIEdgeInsets(top: 10, left: 18, bottom: 10, right: 18)
+        var retryConfiguration = UIButton.Configuration.plain()
+        retryConfiguration.title = "重新加载"
+        retryConfiguration.baseForegroundColor = .white
+        retryConfiguration.background.backgroundColor = UIColor.white.withAlphaComponent(0.18)
+        retryConfiguration.background.cornerRadius = 12
+        retryConfiguration.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 18, bottom: 10, trailing: 18)
+        retryConfiguration.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .systemFont(ofSize: 16, weight: .semibold)
+            return outgoing
+        }
+        retryButton.configuration = retryConfiguration
         retryButton.isHidden = true
         retryButton.addTarget(self, action: #selector(retryTapped), for: .touchUpInside)
         view.addSubview(retryButton)
@@ -90,11 +96,16 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
 
     private func loadGame() {
         if let indexURL = bundledIndexURL() {
-            let webRootURL = indexURL.deletingLastPathComponent()
-            prepareForLoad(message: "正在加载本地 SuperCube...", loadingLocalWeb: true)
-            print("SuperCube loading local: \(indexURL.absoluteString)")
-            webView.loadFileURL(indexURL, allowingReadAccessTo: webRootURL)
-            scheduleTimeout(seconds: 6)
+            do {
+                let html = try String(contentsOf: indexURL, encoding: .utf8)
+                let webRootURL = indexURL.deletingLastPathComponent()
+                prepareForLoad(message: "正在加载本地 SuperCube...", loadingLocalWeb: true)
+                print("SuperCube loading local inline HTML: \(indexURL.absoluteString)")
+                webView.loadHTMLString(html, baseURL: webRootURL)
+                scheduleTimeout(seconds: 10)
+            } catch {
+                showMessage("SuperCube 本地资源读取失败\n\(error.localizedDescription)")
+            }
             return
         }
 
@@ -143,7 +154,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
                     return
                 }
                 if self.loadingLocalWeb {
-                    self.loadRemote(reason: "Local Web timeout, readyState: \(readyState)")
+                    self.showMessage("SuperCube 本地资源加载超时\nreadyState: \(readyState)")
                 } else {
                     self.showMessage("SuperCube 加载超时\n当前网络可以访问 App，但在线页面没有完成渲染。\nreadyState: \(readyState)")
                 }
@@ -175,7 +186,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
         hardTimeoutWorkItem?.cancel()
         renderCheckWorkItem?.cancel()
         if loadingLocalWeb {
-            loadRemote(reason: "Local Web failed: \(error.localizedDescription)")
+            showMessage("SuperCube 本地资源加载失败\n\(error.localizedDescription)")
         } else {
             showMessage("SuperCube failed to load\n\(error.localizedDescription)")
         }
@@ -202,7 +213,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
             }
 
             if self.loadingLocalWeb {
-                self.loadRemote(reason: "Local Web finished but app root is empty")
+                self.showMessage("SuperCube 本地资源已加载，但游戏没有完成渲染。\n请重新安装最新 TestFlight 包后再试。")
             } else {
                 self.showMessage("SuperCube 页面已加载，但没有渲染内容。\n请检查网络，或稍后点击重新加载。")
             }
