@@ -22,7 +22,7 @@
 - 当前线上前端需要固定独立部署源，避免 iOS-only `main` 触发错误重部署。
 - Debug 构建关闭 Debug Dylib 注入，降低 beta iOS 真机启动风险。
 - Bundle ID：`com.pluto.supercube`
-- 当前版本：`1.0 (5)`
+- 当前版本：`1.0 (6)`
 - 最低系统：iOS 15.0
 
 ## 本地验证

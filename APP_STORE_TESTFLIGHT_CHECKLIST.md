@@ -9,14 +9,14 @@
 - App 名称：SuperCube
 - Bundle ID：`com.pluto.supercube`
 - Version：`1.0`
-- Build：`5`
+- Build：`6`
 - 最低系统：iOS 15.0
 - 当前壳：UIKit + WKWebView
 - 当前加载：优先 App 内置单文件 Web 资源；仅本地资源缺失时备用线上 `https://super-cube-rho.vercel.app`
 - 当前分支：`feat/app-store-assets`，合并后以 `main` 最新提交为准。
 - 当前提交：发布前用 `git log -1 --oneline` 确认。
 - GitHub 主线：PR #16 已合并，`Pluto-Li-1990/SuperCube` 的 `main` 已切换为 iOS 正式工程。
-- 最新构建验证：Build 5 内置单文件 Web 修复包 `Release` + `CODE_SIGNING_ALLOWED=NO` 真机目标构建通过；模拟器构建通过并已启动进大厅。
+- 最新构建验证：Build 6 内置贴图单文件 Web 修复包，真机目标 Release 构建通过；模拟器 Release 构建通过并已启动进大厅，确认元素贴图恢复、原生加载遮罩不再压住游戏画面、首次教学第一屏为操作说明。
 - 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明原生壳不追踪、不采集数据、不使用需声明的 Required Reason API。
 - 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，仍需部署为公开 URL 后填入 App Store Connect。
 - 服务器方案：已生成 `SERVER_PLAN.md`。
