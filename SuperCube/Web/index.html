@@ -188,5 +188,251 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     </div>`,x.append(i);let t="pvp";const e=i.querySelector(".lobby-diff"),s=document.getElementById("lobby-start"),n=a=>{t=a,i.querySelectorAll(".battle-modes .mode-tile").forEach(o=>{o.classList.toggle("sel",o.dataset.mode===a)}),e.hidden=a==="online",s.innerHTML=a==="online"?'<span class="pb-icon">🌐</span> 开始匹配':'<span class="pb-icon">▶</span> 开始'};i.querySelectorAll(".battle-modes .mode-tile").forEach(a=>{a.onclick=()=>n(a.dataset.mode)}),s.onclick=()=>{t==="pvp"?_e("shared-turn"):t==="online"?Ue():et(t==="survival"?"survival":"time-attack")},document.getElementById("m-workshop").onclick=()=>qe(),document.getElementById("m-settings").onclick=()=>{L(),new we(x,I)},document.getElementById("m-tutorial").onclick=()=>{Bt()},i.querySelectorAll(".lobby-diff button").forEach(a=>{a.onclick=()=>{At=a.dataset.d,i.querySelectorAll(".lobby-diff button").forEach(o=>o.classList.remove("sel")),a.classList.add("sel")}})}function Bt(){L(),new De(x,{onBack:I,onStart:Ct})}function Ct(i){L(),H=new He(x,i,{onExit:Bt,onNext:Ct})}function _e(i){L(),new Ie(x,C,t=>{const{selfExtra:e,oppExtra:s}=Ae(C,t.choice);et(i,e,s)},I)}function Ue(){const i=y.serverUrl||"wss://",t=window.prompt("输入联网服务器地址（部署服务器后填，如 wss://你的域名）",i);!t||t==="wss://"||(y.serverUrl=t,W(),L(),new Ne(x,{serverUrl:t,name:"玩家",playerBag:C,onExit:I}))}function et(i,t,e){L(),D=new Ee(x,{mode:i,difficulty:At,playerBag:t??C,aiBag:e,onExit:I})}function qe(){L();const i=document.createElement("button");i.className="ws-back",i.textContent="‹ 返回大厅",i.onclick=I,x.append(i);const t=document.createElement("div");x.append(t),O=new xe(t,()=>{C=O.getShelf()}),C.length&&(O.shelf=[...C],O.renderShelf?.())}me();new We(x,()=>{I(),Fe()||new St(()=>{})});
 
 </script>
+<script>
+(() => {
+  if (typeof window === "undefined") return;
+  if (typeof f === "undefined" || typeof y === "undefined") return;
+
+  const VERSION_KEY = "supercube.audio.v2";
+
+  try {
+    if (localStorage.getItem(VERSION_KEY) !== "1") {
+      y.sfx = true;
+      y.bgm = true;
+      localStorage.setItem(VERSION_KEY, "1");
+      if (typeof W === "function") W();
+    }
+  } catch {}
+
+  const getAudioCtor = () => window.AudioContext || window.webkitAudioContext;
+  const safeFreq = (value) => Math.max(24, Number(value) || 220);
+
+  f.ensure = function ensureAudio() {
+    if (this.ctx) return this.ctx;
+    const AudioCtor = getAudioCtor();
+    if (!AudioCtor) return null;
+
+    const ctx = new AudioCtor();
+    const master = ctx.createGain();
+    const sfxGain = ctx.createGain();
+    const bgmGain = ctx.createGain();
+    const limiter = ctx.createDynamicsCompressor();
+
+    master.gain.value = 0.78;
+    sfxGain.gain.value = 0.82;
+    bgmGain.gain.value = 0.22;
+    limiter.threshold.value = -14;
+    limiter.knee.value = 22;
+    limiter.ratio.value = 10;
+    limiter.attack.value = 0.006;
+    limiter.release.value = 0.18;
+
+    sfxGain.connect(master);
+    bgmGain.connect(master);
+    master.connect(limiter);
+    limiter.connect(ctx.destination);
+
+    this.ctx = ctx;
+    this.master = master;
+    this.sfxGain = sfxGain;
+    this.bgmGain = bgmGain;
+    this.limiter = limiter;
+    return ctx;
+  };
+
+  f.resume = function resumeAudio() {
+    const ctx = this.ensure();
+    if (!ctx) return Promise.resolve();
+    if (ctx.state === "suspended") return ctx.resume().catch(() => {});
+    return Promise.resolve();
+  };
+
+  f.tone = function tone(freq, duration, opts = {}) {
+    const channel = opts.channel === "bgm" ? "bgm" : "sfx";
+    if (channel === "sfx" && !y.sfx) return;
+    if (channel === "bgm" && !y.bgm) return;
+
+    const ctx = this.ensure();
+    if (!ctx) return;
+
+    const start = ctx.currentTime + (opts.delay || 0);
+    const end = start + Math.max(0.025, duration);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    const out = channel === "bgm" ? this.bgmGain : this.sfxGain;
+
+    osc.type = opts.type || "sine";
+    osc.frequency.setValueAtTime(safeFreq(freq), start);
+    if (opts.slideTo) {
+      osc.frequency.exponentialRampToValueAtTime(safeFreq(opts.slideTo), end);
+    }
+    if (opts.detune) osc.detune.setValueAtTime(opts.detune, start);
+
+    filter.type = opts.filterType || "lowpass";
+    filter.frequency.setValueAtTime(opts.filter || (channel === "bgm" ? 2600 : 5200), start);
+    filter.Q.setValueAtTime(opts.q || 0.6, start);
+
+    const peak = Math.max(0.001, opts.gain ?? (channel === "bgm" ? 0.055 : 0.22));
+    const attack = opts.attack ?? 0.01;
+    const release = opts.release ?? 0.02;
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(peak, start + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, Math.max(start + attack + 0.01, end - release));
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(out);
+    osc.start(start);
+    osc.stop(end + 0.04);
+  };
+
+  f.noise = function noise(duration, opts = {}) {
+    if (!y.sfx) return;
+    const ctx = this.ensure();
+    if (!ctx) return;
+
+    const length = Math.max(1, Math.floor(ctx.sampleRate * duration));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < length; i++) {
+      const fade = 1 - i / length;
+      data[i] = (Math.random() * 2 - 1) * fade * fade;
+    }
+
+    const start = ctx.currentTime + (opts.delay || 0);
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    source.buffer = buffer;
+    filter.type = opts.filterType || "bandpass";
+    filter.frequency.setValueAtTime(opts.filter || 900, start);
+    filter.Q.setValueAtTime(opts.q || 1.2, start);
+    gain.gain.setValueAtTime(opts.gain || 0.12, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+    source.start(start);
+    source.stop(start + duration + 0.02);
+  };
+
+  f.tap = function tap() {
+    this.tone(740, 0.045, { type: "triangle", gain: 0.09, slideTo: 980, filter: 4800 });
+  };
+
+  f.move = function move() {
+    this.tone(185, 0.045, { type: "square", gain: 0.12, slideTo: 228, filter: 1800 });
+  };
+
+  f.rotate = function rotate() {
+    this.tone(410, 0.05, { type: "triangle", gain: 0.14, slideTo: 690, filter: 3600 });
+    this.tone(615, 0.045, { type: "sine", gain: 0.07, delay: 0.035, slideTo: 520, filter: 4200 });
+  };
+
+  f.lock = function lock() {
+    this.noise(0.075, { gain: 0.12, filter: 220, q: 0.8 });
+    this.tone(150, 0.13, { type: "sine", gain: 0.22, slideTo: 86, filter: 900 });
+  };
+
+  f.reaction = function reaction() {
+    this.noise(0.16, { gain: 0.11, filter: 1700, q: 1.8 });
+    this.tone(620, 0.16, { type: "sawtooth", gain: 0.12, slideTo: 1280, filter: 3600 });
+    this.tone(930, 0.11, { type: "triangle", gain: 0.08, delay: 0.08, slideTo: 540, filter: 4200 });
+  };
+
+  f.clear = function clear(lines = 1) {
+    const notes = [523.25, 659.25, 783.99, 987.77, 1318.51];
+    const count = Math.min(Math.max(2, lines + 1), notes.length);
+    for (let i = 0; i < count; i++) {
+      this.tone(notes[i], 0.17, { type: "triangle", gain: 0.18, delay: i * 0.055, filter: 4800 });
+      this.tone(notes[i] / 2, 0.16, { type: "sine", gain: 0.06, delay: i * 0.055, filter: 1600 });
+    }
+  };
+
+  f.ancient = function ancient() {
+    [261.63, 329.63, 392, 523.25, 659.25, 783.99, 1046.5].forEach((note, idx) => {
+      this.tone(note, 0.78, { type: "sine", gain: 0.18, delay: idx * 0.08, filter: 3800 });
+      this.tone(note * 2, 0.32, { type: "triangle", gain: 0.055, delay: idx * 0.08 + 0.04, filter: 5200 });
+    });
+    this.noise(0.42, { gain: 0.08, delay: 0.18, filter: 2400, q: 0.7 });
+  };
+
+  f.gameOver = function gameOver(won) {
+    const notes = won ? [392, 493.88, 587.33, 783.99] : [392, 311.13, 246.94, 196];
+    notes.forEach((note, idx) => {
+      this.tone(note, won ? 0.28 : 0.34, {
+        type: won ? "triangle" : "sawtooth",
+        gain: won ? 0.18 : 0.14,
+        delay: idx * 0.12,
+        slideTo: won ? note * 1.08 : note * 0.86,
+        filter: won ? 4600 : 1700
+      });
+    });
+  };
+
+  f.startBgm = function startBgm() {
+    if (this.bgmTimer || typeof window === "undefined") return;
+    this.ensure();
+    const melody = [392, 493.88, 587.33, 659.25, 587.33, 493.88, 440, 392, 329.63, 392, 493.88, 587.33, 523.25, 493.88, 392, 329.63];
+    const bass = [98, 130.81, 146.83, 164.81];
+    const tick = () => {
+      if (!y.bgm || document.hidden) return;
+      const step = this.bgmStep++ || 0;
+      const note = melody[step % melody.length];
+      this.tone(note, 0.32, { channel: "bgm", type: "triangle", gain: 0.055, filter: 2400 });
+      if (step % 2 === 0) {
+        this.tone(note * 2, 0.12, { channel: "bgm", type: "sine", gain: 0.016, delay: 0.14, filter: 4300 });
+      }
+      if (step % 4 === 0) {
+        this.tone(bass[Math.floor(step / 4) % bass.length], 0.82, { channel: "bgm", type: "sine", gain: 0.042, filter: 700 });
+      }
+    };
+    tick();
+    this.bgmTimer = setInterval(tick, 430);
+  };
+
+  f.stopBgm = function stopBgm() {
+    if (!this.bgmTimer) return;
+    clearInterval(this.bgmTimer);
+    this.bgmTimer = null;
+  };
+
+  f.syncBgm = function syncBgm() {
+    if (y.bgm) {
+      this.resume();
+      this.startBgm();
+    } else {
+      this.stopBgm();
+    }
+  };
+
+  const unlock = () => {
+    f.resume();
+    if (y.bgm) f.startBgm();
+  };
+
+  document.addEventListener("touchstart", unlock, { passive: true });
+  document.addEventListener("pointerdown", unlock, { passive: true });
+  document.addEventListener("keydown", unlock, { passive: true });
+  document.addEventListener("click", (event) => {
+    unlock();
+    const button = event.target && event.target.closest ? event.target.closest("button") : null;
+    if (button && !button.classList.contains("ctrl-btn")) f.tap();
+  }, true);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      f.stopBgm();
+    } else if (y.bgm) {
+      f.syncBgm();
+    }
+  });
+
+  f.syncBgm();
+})();
+</script>
 </body>
 </html>
