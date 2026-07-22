@@ -8,3 +8,6 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+server/node_modules/
+server/dist/
+server/*.timestamp-*.mjs
