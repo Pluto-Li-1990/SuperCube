@@ -64,14 +64,14 @@ iOS App 继续保持轻量：
 - 健康检查 `/healthz`；
 - 结构化日志，方便排查真机问题。
 
-### 4. 域名建议
+### 4. 域名方案
 
-建议最终拆成两个地址：
+已购买主域名：
 
-- `https://play.supercube.app`：网页前端；
-- `wss://match.supercube.app`：实时对战服务器。
+- `https://supercubegame.com`：游戏官网、隐私政策、技术支持；
+- `wss://match.supercubegame.com`：实时对战服务器。
 
-测试阶段可以先用平台临时域名，等 TestFlight 稳定后再绑定正式域名。
+测试阶段可以先用 ECS 公网 IP 做临时连通性测试，但进入 TestFlight 双机测试前应尽快切到 `wss://match.supercubegame.com`，避免 iOS、网络环境和审核侧对明文 WebSocket 的不确定性。
 
 ## 分阶段落地
 
@@ -106,7 +106,8 @@ iOS App 继续保持轻量：
 ## 近期最小行动清单
 
 1. 把当前 `server/` 部署到阿里云 ECS。
-2. 用域名和 HTTPS 证书暴露 `wss://...`，不要长期使用明文 `ws://IP:端口`。
-3. iOS 在线对战入口默认填入测试服地址。
-4. 加游客 ID 与昵称，先不做注册登录。
-5. 双机 TestFlight 实测匹配、回合同步、掉线、后台切回。
+2. 添加 DNS 解析：`match.supercubegame.com` 指向 ECS 公网 IP。
+3. 用 HTTPS 证书和 Nginx 暴露 `wss://match.supercubegame.com`，不要长期使用明文 `ws://IP:端口`。
+4. iOS 在线对战入口默认填入测试服地址。
+5. 加游客 ID 与昵称，先不做注册登录。
+6. 双机 TestFlight 实测匹配、回合同步、掉线、后台切回。

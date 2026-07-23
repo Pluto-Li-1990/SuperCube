@@ -34,12 +34,17 @@ Recommended production shape:
 
 ```text
 iOS / Web client
-  -> wss://match.your-domain.example
+  -> wss://match.supercubegame.com
   -> Nginx HTTPS reverse proxy
   -> Node server on 127.0.0.1:8090
 ```
 
 Use HTTPS/WSS for real-device testing. Avoid `ws://public-ip:port` except for quick LAN experiments.
+
+Domain plan:
+
+- `supercubegame.com`: website, privacy policy, support
+- `match.supercubegame.com`: WebSocket matchmaking and turn relay
 
 ## Nginx WebSocket Location
 
