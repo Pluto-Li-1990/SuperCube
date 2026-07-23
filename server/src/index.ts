@@ -7,7 +7,9 @@ const server = createNetcodeServer({
   port: Number.isFinite(port) ? port : 8090,
   host: process.env.HOST,
   heartbeatTimeoutMs: Number.isFinite(heartbeatTimeoutMs) ? heartbeatTimeoutMs : 15_000,
-  heartbeatSweepMs: Number.isFinite(heartbeatSweepMs) ? heartbeatSweepMs : 1_000
+  heartbeatSweepMs: Number.isFinite(heartbeatSweepMs) ? heartbeatSweepMs : 1_000,
+  accountStorePath: process.env.ACCOUNT_STORE_PATH,
+  appleAudience: process.env.APPLE_AUDIENCE ?? "com.pluto.supercube"
 });
 
 server

@@ -13,12 +13,12 @@
 - 最低系统：iOS 15.0
 - 当前壳：UIKit + WKWebView
 - 当前加载：优先 App 内置单文件 Web 资源；仅本地资源缺失时备用线上 `https://super-cube-rho.vercel.app`
-- 当前分支：`feat/app-store-assets`，合并后以 `main` 最新提交为准。
+- 当前分支：账号上线前以 `feat/account-apple-guest` 合并后的 `main` 为准。
 - 当前提交：发布前用 `git log -1 --oneline` 确认。
 - GitHub 主线：PR #16 已合并，`Pluto-Li-1990/SuperCube` 的 `main` 已切换为 iOS 正式工程。
 - 最新构建验证：Build 6 内置贴图单文件 Web 修复包，真机目标 Release 构建通过；模拟器 Release 构建通过并已启动进大厅，确认元素贴图恢复、原生加载遮罩不再压住游戏画面、首次教学第一屏为操作说明。
 - 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明原生壳不追踪、不采集数据、不使用需声明的 Required Reason API。
-- 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，仍需部署为公开 URL 后填入 App Store Connect。
+- 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，GitHub Pages URL 填入 App Store Connect 后，每次账号/联网能力变更都要同步更新。
 - 服务器方案：已生成 `SERVER_PLAN.md`。
 - 分批测试计划：已生成 `TESTFLIGHT_BATCH_PLAN.md`，当前优先准备 Batch 0.1 启动验证包。
 
@@ -32,13 +32,13 @@
   - Beta App Description
   - What to Test
   - Feedback Email
-  - Demo account / login note：当前无需登录。
+  - Demo account / login note：支持游客继续；Apple 登录为可选。
 - 填写出口合规：
   - 当前仅 HTTPS/WKWebView，通常按标准加密用途填写。
 - 填写 App Privacy：
   - 当前原生壳未请求系统权限。
-  - 若线上 Web 不采集用户数据、无广告追踪、无账号系统，可按“不收集数据”准备。
-  - 如果联网对战后引入用户 ID、房间 ID、日志、统计或广告 SDK，需要重新填。
+  - 当前有可选 Apple 登录、游客身份、联网匹配和服务器日志，App Privacy 不应再按“完全不收集数据”填写。
+  - 如后续引入 Google/微信/邮箱、排行榜、统计、广告 SDK，需要重新填写。
 - 准备截图与商店文案。
 - 真机测试至少覆盖：
   - 首次启动
@@ -47,6 +47,7 @@
   - 横竖屏/安全区
   - PVE 对战
   - 在线匹配失败提示
+  - 账号面板：游客继续、Apple 登录、删除账号
   - 工坊
   - 教学
 
@@ -74,7 +75,7 @@
 - Game Center
 - 付费 / 内购
 - 广告
-- 账号系统
+- Google/微信/邮箱登录
 - 跨平台 Android 壳
 - 联网服务器正式 SLA 与监控
 

@@ -21,6 +21,8 @@ Environment variables:
 - `HOST`: optional bind host, usually leave empty behind Nginx
 - `HEARTBEAT_TIMEOUT_MS`: stale client timeout, default `15000`
 - `HEARTBEAT_SWEEP_MS`: heartbeat sweep interval, default `1000`
+- `APPLE_AUDIENCE`: Sign in with Apple audience / iOS Bundle ID, default `com.pluto.supercube`
+- `ACCOUNT_STORE_PATH`: optional persistent account JSON path, for example `/opt/supercube/data/accounts.json`
 
 Health check:
 
@@ -70,6 +72,8 @@ After=network.target
 WorkingDirectory=/opt/supercube/server
 Environment=NODE_ENV=production
 Environment=PORT=8090
+Environment=APPLE_AUDIENCE=com.pluto.supercube
+Environment=ACCOUNT_STORE_PATH=/opt/supercube/data/accounts.json
 ExecStart=/usr/bin/node dist/index.js
 Restart=always
 RestartSec=3

@@ -1,11 +1,19 @@
-import { createServer, type Server as HttpServer } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server as HttpServer,
+  type ServerResponse
+} from "node:http";
 import { randomBytes, randomUUID } from "node:crypto";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
+import { AccountStore } from "./AccountStore.js";
+import { AppleTokenVerifier } from "./AppleTokenVerifier.js";
 import type { ClientMessage, PieceDefDTO, PlayerSide, ServerMessage } from "./types.js";
 
 type ClientMode = "IDLE" | "WAITING" | "PLAYING";
 
 const MAX_WS_PAYLOAD_BYTES = 16 * 1024;
+const MAX_HTTP_BODY_BYTES = 16 * 1024;
 const MAX_PLAYER_NAME_CHARS = 24;
 const MAX_CUSTOM_BAG_PIECES = 16;
 const MAX_PIECE_CELLS = 4;
@@ -20,6 +28,7 @@ interface ClientState {
   ws: WebSocket;
   mode: ClientMode;
   name: string;
+  accountId?: string;
   bag: PieceDefDTO[];
   matchId?: string;
   side?: PlayerSide;
@@ -103,6 +112,8 @@ export interface NetcodeServerOptions {
   host?: string;
   heartbeatTimeoutMs?: number;
   heartbeatSweepMs?: number;
+  accountStorePath?: string;
+  appleAudience?: string;
 }
 
 export class NetcodeServer {
@@ -111,6 +122,8 @@ export class NetcodeServer {
   private readonly matches = new Map<string, MatchState>();
   private readonly httpServer: HttpServer;
   private readonly wss: WebSocketServer;
+  private readonly accountStore: AccountStore;
+  private readonly appleTokenVerifier: AppleTokenVerifier;
   private readonly heartbeatTimeoutMs: number;
   private readonly heartbeatSweepMs: number;
   private heartbeatTimer?: NodeJS.Timeout;
@@ -118,24 +131,10 @@ export class NetcodeServer {
   constructor(private readonly options: NetcodeServerOptions = {}) {
     this.heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? 15_000;
     this.heartbeatSweepMs = options.heartbeatSweepMs ?? 1_000;
+    this.accountStore = new AccountStore(options.accountStorePath);
+    this.appleTokenVerifier = new AppleTokenVerifier(options.appleAudience ?? "com.pluto.supercube");
     this.httpServer = createServer((req, res) => {
-      if (req.method === "GET" && req.url === "/healthz") {
-        const body = JSON.stringify({
-          ok: true,
-          clients: this.clients.size,
-          waiting: this.waitingQueue.filter((client) => client.mode === "WAITING").length,
-          matches: this.matches.size
-        });
-        res.writeHead(200, {
-          "content-type": "application/json; charset=utf-8",
-          "cache-control": "no-store"
-        });
-        res.end(body);
-        return;
-      }
-
-      res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
-      res.end("Not found");
+      void this.handleHttpRequest(req, res);
     });
     this.wss = new WebSocketServer({ server: this.httpServer, maxPayload: MAX_WS_PAYLOAD_BYTES });
     this.wss.on("connection", (ws) => this.handleConnection(ws));
@@ -201,6 +200,136 @@ export class NetcodeServer {
         });
       });
     });
+  }
+
+  private async handleHttpRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    this.setCorsHeaders(res);
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const url = new URL(req.url ?? "/", "http://localhost");
+
+    try {
+      if (req.method === "GET" && url.pathname === "/healthz") {
+        this.writeJSON(res, 200, {
+          ok: true,
+          clients: this.clients.size,
+          waiting: this.waitingQueue.filter((client) => client.mode === "WAITING").length,
+          matches: this.matches.size
+        });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/auth/guest") {
+        const body = await this.readJSON(req);
+        const { account, token } = this.accountStore.createGuest(body.displayName);
+        this.writeJSON(res, 200, { account: this.accountStore.publicAccount(account), token });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/auth/apple") {
+        const body = await this.readJSON(req);
+        const verified = await this.appleTokenVerifier.verify(body.identityToken);
+        if (!verified) {
+          this.writeJSON(res, 401, { error: "INVALID_APPLE_TOKEN" });
+          return;
+        }
+
+        const { account, token } = this.accountStore.upsertApple(
+          verified.subject,
+          body.displayName,
+          verified.email
+        );
+        this.writeJSON(res, 200, { account: this.accountStore.publicAccount(account), token });
+        return;
+      }
+
+      if (req.method === "GET" && url.pathname === "/auth/me") {
+        const account = this.accountStore.getByToken(this.getBearerToken(req));
+        if (!account) {
+          this.writeJSON(res, 401, { error: "UNAUTHORIZED" });
+          return;
+        }
+
+        this.writeJSON(res, 200, { account: this.accountStore.publicAccount(account) });
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/auth/delete") {
+        const deleted = this.accountStore.deleteByToken(this.getBearerToken(req));
+        if (!deleted) {
+          this.writeJSON(res, 401, { error: "UNAUTHORIZED" });
+          return;
+        }
+
+        this.writeJSON(res, 200, { ok: true });
+        return;
+      }
+
+      this.writeJSON(res, 404, { error: "NOT_FOUND" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "SERVER_ERROR";
+      this.writeJSON(res, message === "REQUEST_TOO_LARGE" || message === "BAD_JSON" ? 400 : 500, {
+        error: message
+      });
+    }
+  }
+
+  private readJSON(req: IncomingMessage): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      let total = 0;
+      const chunks: Buffer[] = [];
+
+      req.on("data", (chunk: Buffer) => {
+        total += chunk.length;
+        if (total > MAX_HTTP_BODY_BYTES) {
+          reject(new Error("REQUEST_TOO_LARGE"));
+          req.destroy();
+          return;
+        }
+        chunks.push(chunk);
+      });
+
+      req.on("end", () => {
+        try {
+          const body = Buffer.concat(chunks).toString("utf8") || "{}";
+          const parsed = JSON.parse(body) as unknown;
+          resolve(isRecord(parsed) ? parsed : {});
+        } catch {
+          reject(new Error("BAD_JSON"));
+        }
+      });
+
+      req.on("error", reject);
+    });
+  }
+
+  private getBearerToken(req: IncomingMessage): string | null {
+    const header = req.headers.authorization;
+    if (!header) {
+      return null;
+    }
+
+    const match = /^Bearer\s+(.+)$/i.exec(header);
+    return match?.[1] ?? null;
+  }
+
+  private setCorsHeaders(res: ServerResponse): void {
+    res.setHeader("access-control-allow-origin", "*");
+    res.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
+    res.setHeader("access-control-allow-headers", "content-type,authorization");
+  }
+
+  private writeJSON(res: ServerResponse, status: number, body: unknown): void {
+    res.writeHead(status, {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store"
+    });
+    res.end(JSON.stringify(body));
   }
 
   private handleConnection(ws: WebSocket): void {
@@ -276,7 +405,9 @@ export class NetcodeServer {
       return;
     }
 
-    client.name = sanitizeText(message.name, "Player", MAX_PLAYER_NAME_CHARS);
+    const account = this.accountStore.getByToken(message.accountToken);
+    client.accountId = account?.id;
+    client.name = account?.displayName ?? sanitizeText(message.name, "Player", MAX_PLAYER_NAME_CHARS);
     client.bag = sanitizeBag(message.bag);
     client.mode = "WAITING";
     this.waitingQueue.push(client);

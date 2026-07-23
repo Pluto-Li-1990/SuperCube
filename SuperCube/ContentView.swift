@@ -1,7 +1,8 @@
+import AuthenticationServices
 import UIKit
 import WebKit
 
-final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
+final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     private let remoteURL = URL(string: "https://super-cube-rho.vercel.app")!
     private var webView: WKWebView!
     private let loadingView = UIActivityIndicatorView(style: .large)
@@ -21,6 +22,9 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
         configuration.allowsInlineMediaPlayback = true
         configuration.websiteDataStore = .default()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+        let userContentController = WKUserContentController()
+        userContentController.add(self, name: "supercubeAuth")
+        configuration.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = self
@@ -92,6 +96,10 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
         ])
 
         loadGame()
+    }
+
+    deinit {
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "supercubeAuth")
     }
 
     private func loadGame() {
@@ -235,5 +243,100 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate {
     @objc private func retryTapped() {
         webView.stopLoading()
         loadGame()
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "supercubeAuth",
+              let body = message.body as? [String: Any],
+              let type = body["type"] as? String
+        else {
+            return
+        }
+
+        switch type {
+        case "signInWithApple":
+            startAppleSignIn()
+        default:
+            break
+        }
+    }
+
+    private func startAppleSignIn() {
+        let provider = ASAuthorizationAppleIDProvider()
+        let request = provider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        controller.performRequests()
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+            deliverAuthFailure("无法读取 Apple 登录凭证")
+            return
+        }
+
+        let displayName = displayName(from: credential.fullName)
+        let identityToken = credential.identityToken.flatMap { String(data: $0, encoding: .utf8) }
+        var payload: [String: Any] = [
+            "provider": "apple",
+            "appleUserId": credential.user,
+            "displayName": displayName
+        ]
+
+        if let email = credential.email {
+            payload["email"] = email
+        }
+        if let identityToken {
+            payload["identityToken"] = identityToken
+        }
+
+        deliverAuthSuccess(payload)
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        let nsError = error as NSError
+        if nsError.domain == ASAuthorizationError.errorDomain,
+           nsError.code == ASAuthorizationError.canceled.rawValue {
+            deliverAuthFailure("已取消 Apple 登录")
+            return
+        }
+
+        deliverAuthFailure(error.localizedDescription)
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        view.window ?? ASPresentationAnchor()
+    }
+
+    private func displayName(from fullName: PersonNameComponents?) -> String {
+        guard let fullName else {
+            return "Apple 玩家"
+        }
+
+        let formatter = PersonNameComponentsFormatter()
+        let name = formatter.string(from: fullName).trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? "Apple 玩家" : name
+    }
+
+    private func deliverAuthSuccess(_ payload: [String: Any]) {
+        deliverAuthResult(["ok": true, "credential": payload])
+    }
+
+    private func deliverAuthFailure(_ message: String) {
+        deliverAuthResult(["ok": false, "message": message])
+    }
+
+    private func deliverAuthResult(_ payload: [String: Any]) {
+        guard JSONSerialization.isValidJSONObject(payload),
+              let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8)
+        else {
+            return
+        }
+
+        webView.evaluateJavaScript("window.SuperCubeNativeAuthResult && window.SuperCubeNativeAuthResult(\(json));")
     }
 }

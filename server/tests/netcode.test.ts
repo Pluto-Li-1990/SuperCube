@@ -179,6 +179,54 @@ describe("SuperCube netcode server", () => {
     });
   });
 
+  it("creates a guest account and uses its display name when matching", async () => {
+    const response = await fetch(`http://127.0.0.1:${new URL(url).port}/auth/guest`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ displayName: "休息玩家" })
+    });
+    await expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      account: { displayName: string; provider: string };
+      token: string;
+    };
+    expect(payload.account).toMatchObject({ displayName: "休息玩家", provider: "guest" });
+    expect(payload.token).toMatch(/^sc_/);
+
+    const a = await newClient();
+    const b = await newClient();
+    a.send({ type: "queue", name: "ignored", accountToken: payload.token });
+    b.send({ type: "queue", name: "Bob" });
+    const { matchB } = await waitForMatch(a, b);
+
+    expect(matchB.opponent).toEqual({ name: "休息玩家" });
+  });
+
+  it("supports reading and deleting an account session", async () => {
+    const createResponse = await fetch(`http://127.0.0.1:${new URL(url).port}/auth/guest`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ displayName: "Delete Me" })
+    });
+    const payload = (await createResponse.json()) as { token: string };
+
+    const meResponse = await fetch(`http://127.0.0.1:${new URL(url).port}/auth/me`, {
+      headers: { authorization: `Bearer ${payload.token}` }
+    });
+    await expect(meResponse.status).toBe(200);
+
+    const deleteResponse = await fetch(`http://127.0.0.1:${new URL(url).port}/auth/delete`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${payload.token}` }
+    });
+    await expect(deleteResponse.status).toBe(200);
+
+    const afterDeleteResponse = await fetch(`http://127.0.0.1:${new URL(url).port}/auth/me`, {
+      headers: { authorization: `Bearer ${payload.token}` }
+    });
+    await expect(afterDeleteResponse.status).toBe(401);
+  });
+
   it("enforces side parity and monotonically increasing turn order", async () => {
     const a = await newClient();
     const b = await newClient();
