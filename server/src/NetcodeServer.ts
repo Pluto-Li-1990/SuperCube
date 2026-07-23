@@ -1,9 +1,19 @@
 import { createServer, type Server as HttpServer } from "node:http";
 import { randomBytes, randomUUID } from "node:crypto";
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocketServer, WebSocket, type RawData } from "ws";
 import type { ClientMessage, PieceDefDTO, PlayerSide, ServerMessage } from "./types.js";
 
 type ClientMode = "IDLE" | "WAITING" | "PLAYING";
+
+const MAX_WS_PAYLOAD_BYTES = 16 * 1024;
+const MAX_PLAYER_NAME_CHARS = 24;
+const MAX_CUSTOM_BAG_PIECES = 16;
+const MAX_PIECE_CELLS = 4;
+const MAX_PIECE_TEXT_CHARS = 48;
+const MIN_ELEMENT = 0;
+const MAX_ELEMENT = 8;
+const MIN_CELL_COORD = -4;
+const MAX_CELL_COORD = 4;
 
 interface ClientState {
   id: string;
@@ -21,6 +31,71 @@ interface MatchState {
   seed: number;
   expectedTurnIndex: number;
   players: Record<PlayerSide, ClientState>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isBoundedInteger(value: unknown, min: number, max: number): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
+}
+
+function sanitizeText(value: unknown, fallback: string, maxChars: number): string {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+
+  const normalized = value.trim().replace(/\s+/g, " ");
+  if (!normalized) {
+    return fallback;
+  }
+
+  return Array.from(normalized).slice(0, maxChars).join("");
+}
+
+function sanitizeBag(value: unknown): PieceDefDTO[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const pieces: PieceDefDTO[] = [];
+  for (const rawPiece of value.slice(0, MAX_CUSTOM_BAG_PIECES)) {
+    if (!isRecord(rawPiece) || !Array.isArray(rawPiece.cells)) {
+      continue;
+    }
+
+    if (rawPiece.cells.length < 1 || rawPiece.cells.length > MAX_PIECE_CELLS) {
+      continue;
+    }
+
+    const cells = rawPiece.cells
+      .filter(isRecord)
+      .map((cell) => {
+        if (
+          !isBoundedInteger(cell.x, MIN_CELL_COORD, MAX_CELL_COORD) ||
+          !isBoundedInteger(cell.y, MIN_CELL_COORD, MAX_CELL_COORD) ||
+          !isBoundedInteger(cell.element, MIN_ELEMENT, MAX_ELEMENT)
+        ) {
+          return null;
+        }
+        return { x: cell.x, y: cell.y, element: cell.element };
+      })
+      .filter((cell): cell is { x: number; y: number; element: number } => cell !== null);
+
+    if (cells.length !== rawPiece.cells.length) {
+      continue;
+    }
+
+    pieces.push({
+      id: sanitizeText(rawPiece.id, "custom", MAX_PIECE_TEXT_CHARS),
+      name: sanitizeText(rawPiece.name, "Custom", MAX_PIECE_TEXT_CHARS),
+      custom: rawPiece.custom === true,
+      cells
+    });
+  }
+
+  return pieces;
 }
 
 export interface NetcodeServerOptions {
@@ -62,7 +137,7 @@ export class NetcodeServer {
       res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
       res.end("Not found");
     });
-    this.wss = new WebSocketServer({ server: this.httpServer });
+    this.wss = new WebSocketServer({ server: this.httpServer, maxPayload: MAX_WS_PAYLOAD_BYTES });
     this.wss.on("connection", (ws) => this.handleConnection(ws));
   }
 
@@ -139,9 +214,18 @@ export class NetcodeServer {
     };
     this.clients.add(client);
 
-    ws.on("message", (raw) => this.handleRawMessage(client, raw.toString()));
+    ws.on("message", (raw, isBinary) => this.handleWsMessage(client, raw, isBinary));
     ws.on("close", () => this.handleDisconnect(client));
     ws.on("error", () => this.handleDisconnect(client));
+  }
+
+  private handleWsMessage(client: ClientState, raw: RawData, isBinary: boolean): void {
+    if (isBinary) {
+      this.sendError(client, "BAD_MESSAGE", "Binary messages are not supported.");
+      return;
+    }
+
+    this.handleRawMessage(client, raw.toString());
   }
 
   private handleRawMessage(client: ClientState, raw: string): void {
@@ -192,8 +276,8 @@ export class NetcodeServer {
       return;
     }
 
-    client.name = typeof message.name === "string" && message.name.trim() ? message.name : "Player";
-    client.bag = Array.isArray(message.bag) ? message.bag : [];
+    client.name = sanitizeText(message.name, "Player", MAX_PLAYER_NAME_CHARS);
+    client.bag = sanitizeBag(message.bag);
     client.mode = "WAITING";
     this.waitingQueue.push(client);
     this.send(client, { type: "queued" });

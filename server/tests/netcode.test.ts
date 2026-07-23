@@ -55,6 +55,10 @@ class TestClient {
     this.ws.send(JSON.stringify(message));
   }
 
+  sendBinary(data: Buffer): void {
+    this.ws.send(data);
+  }
+
   waitFor(predicate: (message: ServerMessage) => boolean = () => true): Promise<ServerMessage> {
     const existingIndex = this.inbox.findIndex(predicate);
     if (existingIndex >= 0) {
@@ -283,6 +287,70 @@ describe("SuperCube netcode server", () => {
       type: "pong",
       t: 123
     });
+  });
+
+  it("rejects binary messages without disconnecting valid clients", async () => {
+    const client = await newClient();
+
+    client.sendBinary(Buffer.from([1, 2, 3, 4]));
+    await expect(client.waitFor((message) => message.type === "error")).resolves.toMatchObject({
+      type: "error",
+      code: "BAD_MESSAGE"
+    });
+
+    client.send({ type: "ping", t: 456 });
+    await expect(client.waitFor((message) => message.type === "pong")).resolves.toEqual({
+      type: "pong",
+      t: 456
+    });
+  });
+
+  it("sanitizes queued player names and custom piece bags before matching", async () => {
+    const a = await newClient();
+    const b = await newClient();
+    const longText = "Player ".repeat(20);
+
+    a.send({
+      type: "queue",
+      name: longText,
+      bag: [
+        {
+          id: "piece-".repeat(20),
+          name: "Long Custom Piece ".repeat(10),
+          custom: true,
+          cells: [{ x: 0, y: 0, element: 1 }]
+        },
+        {
+          id: "too-many-cells",
+          name: "Too Many Cells",
+          custom: true,
+          cells: [
+            { x: 0, y: 0, element: 1 },
+            { x: 1, y: 0, element: 1 },
+            { x: 2, y: 0, element: 1 },
+            { x: 3, y: 0, element: 1 },
+            { x: 4, y: 0, element: 1 }
+          ]
+        },
+        {
+          id: "bad-cell",
+          name: "Bad Cell",
+          custom: true,
+          cells: [{ x: 99, y: 0, element: 1 }]
+        }
+      ]
+    });
+    b.send({ type: "queue", name: "Bob" });
+
+    const { matchA, matchB } = await waitForMatch(a, b);
+    expect(matchA.bags.A).toHaveLength(1);
+    expect(matchA.bags.A[0].custom).toBe(true);
+    expect(matchA.bags.A[0].cells).toEqual([{ x: 0, y: 0, element: 1 }]);
+    expect(Array.from(matchA.bags.A[0].id)).toHaveLength(48);
+    expect(Array.from(matchA.bags.A[0].name)).toHaveLength(48);
+
+    expect(matchB.opponent.name).toMatch(/^Player/);
+    expect(Array.from(matchB.opponent.name).length).toBeLessThanOrEqual(24);
   });
 
   it("matches 50 pairs and relays 20 turns each without cross-talk", async () => {
