@@ -29,7 +29,7 @@ This checklist defines the minimum bar for shipping online PvP in v1.0.
 - Health check returns JSON:
   `https://match.supercubegame.com/healthz`
 - The same health check must pass from a normal external network, not only from inside the ECS machine.
-- If the server runs on a Mainland China ECS, the public domain must complete ICP filing before release. A `Non-compliance ICP Filing` page means online PvP is not launch-ready.
+- If the server runs on a Mainland China ECS, the public domain must complete ICP filing before release. A `Non-compliance ICP Filing` page means online PvP is not launch-ready. Filing preparation lives in `docs/icp-filing-prep.md`.
 - WebSocket upgrade succeeds:
   `wss://match.supercubegame.com/`
 - `supercube-netcode.service` is enabled and active on ECS.
