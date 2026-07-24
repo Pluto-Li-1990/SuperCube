@@ -1,19 +1,19 @@
 # SuperCube 服务器与上线部署方案
 
-更新时间：2026-07-22
+更新时间：2026-07-24
 
 ## 当前结论
 
 当前 iOS App 是一个原生 WKWebView 壳，优先加载打包进 App 的本地网页资源；在线对战服务器是另一层，只在玩家进入在线匹配、建房、同步回合时需要。
 
-`server/` 已恢复到当前 iOS 仓库，包含 Node + TypeScript + `ws` 联网服务器、`/healthz` 健康检查、生产构建脚本和联网测试。下一步可以部署到 ECS，先用游客身份跑通双人 PVP。
+`server/` 已恢复到当前 iOS 仓库，包含 Node + TypeScript + `ws` 联网服务器、`/healthz` 健康检查、生产构建脚本和联网测试。当前已部署到阿里云香港 ECS 临时节点，域名为 `wss://match.supercubegame.com`，用于 TestFlight 在线对战内测；北京 ECS 等待 ICP 备案后再作为国内节点评估。
 
 ## 风险
 
-1. 服务器刚恢复进当前仓库，还没有部署到公网 ECS。
-2. iOS 在线对战入口当前仍需要玩家输入 WebSocket 地址，尚未固定测试服地址。
+1. 香港 ECS 是过渡测试节点，需要继续观察稳定性、带宽、日志和证书续期。
+2. 北京 ECS 仍需等待 ICP 备案，备案通过前不能作为国内公网对战域名使用。
 3. Vercel 适合托管静态网页前端，但不适合作为长期运行的权威 WebSocket 对战服务器。
-4. 账号系统暂不应先做重；第一阶段建议使用游客 ID 跑通 PVP 闭环。
+4. 当前账号系统只做 Apple 登录与游客身份，Google/微信/邮箱登录应等首轮联网实测稳定后再加。
 
 ## 建议架构
 
@@ -89,9 +89,9 @@ iOS App 继续保持轻量：
 
 - 目标：内部测试在线对战。
 - 服务器：
-  - 部署当前 `server/` Node + TypeScript + `ws` 服务；
-  - 打开 `/healthz`；
-  - 前端配置 `wss://...`；
+  - 已部署当前 `server/` Node + TypeScript + `ws` 服务；
+  - 已打开 `/healthz`；
+  - 前端已固定 `wss://match.supercubegame.com`；
   - 加入协议版本检查和房间超时清理。
 
 ### TestFlight 0.3
@@ -105,9 +105,8 @@ iOS App 继续保持轻量：
 
 ## 近期最小行动清单
 
-1. 把当前 `server/` 部署到阿里云 ECS。
-2. 添加 DNS 解析：`match.supercubegame.com` 指向 ECS 公网 IP。
-3. 用 HTTPS 证书和 Nginx 暴露 `wss://match.supercubegame.com`，不要长期使用明文 `ws://IP:端口`。
-4. iOS 在线对战入口默认填入测试服地址。
-5. 加游客 ID 与昵称，先不做注册登录。
-6. 双机 TestFlight 实测匹配、回合同步、掉线、后台切回。
+1. 上传 Build 7 到 TestFlight。
+2. 双机 TestFlight 实测匹配、回合同步、掉线、后台切回。
+3. 观察香港 ECS 的 `supercube-netcode`、Nginx 和账号存储文件。
+4. 保持安全组仅开放 `22/80/443`，`8090` 只允许本机 Nginx 访问。
+5. 等 ICP 备案通过后，再评估是否把国内节点切回北京 ECS。

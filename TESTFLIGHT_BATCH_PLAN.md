@@ -1,6 +1,6 @@
 # SuperCube TestFlight 分批测试计划
 
-更新时间：2026-07-08
+更新时间：2026-07-24
 
 ## 原则
 
@@ -9,7 +9,7 @@
 ## Batch 0.1：启动验证包
 
 - 版本：`1.0`
-- Build：`3`
+- Build：`7`
 - 目标：确认真机可以安装、启动、加载线上 SuperCube 页面，并在弱网或失败时给出明确提示。
 - 不包含：
   - 新玩法；
@@ -56,6 +56,11 @@
   - 房间生命周期；
   - 断线和超时处理；
   - 基础日志。
+- 当前状态：
+  - 香港 ECS 临时节点已上线；
+  - `https://match.supercubegame.com/healthz` 已通过公网检查；
+  - `wss://match.supercubegame.com/` 已通过 WebSocket 握手检查；
+  - 下一步是上传 Build 7 到 TestFlight 后做双机实测。
 
 ## Batch 0.5：外部测试包
 
