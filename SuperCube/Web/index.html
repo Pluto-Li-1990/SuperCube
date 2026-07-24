@@ -62,7 +62,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
           <div class="lo-list" id="lo-opp"></div>
         </div>
       </div>
-      <button class="lo-go" id="lo-go">⚔ 开战</button>`,this.root.append(t);const e=t.querySelector("#lo-self");this.selfOptions().forEach(n=>{e.append(this.optionCard(n,"self"))});const s=t.querySelector("#lo-opp");[...this.shelf,...Se()].forEach(n=>{s.append(this.optionCard(n,"opp"))}),t.querySelector("#lo-exit").addEventListener("click",()=>{this.cleanup(),this.onCancel()}),t.querySelector("#lo-go").addEventListener("click",()=>this.confirm())}optionCard(t,e){const s=document.createElement("button");s.className="lo-card",s.append(Ce(t));const n=document.createElement("span");return n.textContent=t.name,s.append(n),s.addEventListener("click",()=>{e==="self"?this.selfBuff=this.selfBuff?.id===t.id?null:t:this.oppDebuff=this.oppDebuff?.id===t.id?null:t,this.refreshSelection()}),s.dataset.pid=t.id,s.dataset.side=e,s}refreshSelection(){this.root.querySelectorAll(".lo-card").forEach(t=>{const e=t,s=e.dataset.side==="self"&&this.selfBuff?.id===e.dataset.pid||e.dataset.side==="opp"&&this.oppDebuff?.id===e.dataset.pid;e.classList.toggle("sel",!!s)})}startCountdown(){this.timer=setInterval(()=>{this.remain--;const t=document.getElementById("lo-timer");t&&(t.textContent=`${this.remain}s`),this.remain<=0&&this.confirm()},1e3)}confirm(){this.cleanup(),this.onDone({choice:{selfBuff:this.selfBuff,oppDebuff:this.oppDebuff}})}cleanup(){this.timer&&clearInterval(this.timer),this.timer=void 0}}class Pe{constructor(t,e){c(this,"ws");c(this,"handlers",{});c(this,"pingTimer",null);const s=e??globalThis.WebSocket;this.ws=new s(t),this.ws.onopen=()=>{this.startPing(),this.handlers.open?.()},this.ws.onmessage=n=>this.onMessage(String(n.data)),this.ws.onclose=()=>{this.stopPing(),this.handlers.close?.()},this.ws.onerror=()=>this.handlers.error?.("WS_ERROR","连接错误")}on(t,e){this.handlers[t]=e}onMessage(t){let e;try{e=JSON.parse(t)}catch{return}switch(e.type){case"matchFound":this.handlers.matchFound?.(e);break;case"turn":this.handlers.turn?.(e);break;case"opponentLeft":this.handlers.opponentLeft?.();break;case"error":this.handlers.error?.(e.code,e.message);break}}send(t){this.ws.send(JSON.stringify(t))}queue(t,e){this.send({type:"queue",name:t,bag:e})}cancelQueue(){this.send({type:"cancelQueue"})}sendTurn(t,e,s){this.send({type:"turn",matchId:t,turnIndex:e,move:s})}leave(t){this.send({type:"leave",matchId:t})}startPing(){this.pingTimer=setInterval(()=>this.send({type:"ping",t:Date.now()}),5e3)}stopPing(){this.pingTimer&&clearInterval(this.pingTimer),this.pingTimer=null}close(){this.stopPing(),this.ws.close()}}function $e(i,t){for(let e=0;e<t.rotation;e++)i.rotate();if(i.active){const e=t.px-i.active.px,s=e>0?1:-1;for(let n=0;n<Math.abs(e)&&i.move(s);n++);}return i.commitTurn()}function Re(i){return{id:i.id,name:i.name,custom:i.custom,cells:i.cells.map(t=>({x:t.x,y:t.y,element:t.element}))}}class Ne{constructor(t,e){c(this,"root");c(this,"opts");c(this,"client");c(this,"game",null);c(this,"mySide","A");c(this,"matchId","");c(this,"canvas");c(this,"ctx");c(this,"cell",28);c(this,"raf",0);c(this,"rotations",0);c(this,"fallTimer");c(this,"lockPending",!1);c(this,"resultShown",!1);c(this,"flashes",[]);c(this,"touch",{active:!1,sx:0,sy:0,lx:0,ly:0,startPx:0,lock:""});c(this,"oppName","对手");c(this,"_key");c(this,"loop",()=>{this.game&&this.render(),this.raf=requestAnimationFrame(this.loop)});this.root=t,this.opts=e,this.showStatus("正在连接服务器…"),this.client=new Pe(e.serverUrl),this.client.on("open",()=>{this.showStatus("匹配中…（等待对手）"),this.client.queue(e.name,e.playerBag.map(Re))}),this.client.on("error",(s,n)=>this.showStatus(`连接失败：${n}。请检查服务器地址。`,!0)),this.client.on("close",()=>{this.game||this.showStatus("连接已断开。",!0)}),this.client.on("matchFound",s=>this.onMatchFound(s)),this.client.on("turn",s=>this.onRemoteTurn(s.by,s.move)),this.client.on("opponentLeft",()=>this.endMatch("对手已离开，你获胜！"))}showStatus(t,e=!1){this.root.innerHTML=`
+      <button class="lo-go" id="lo-go">⚔ 开战</button>`,this.root.append(t);const e=t.querySelector("#lo-self");this.selfOptions().forEach(n=>{e.append(this.optionCard(n,"self"))});const s=t.querySelector("#lo-opp");[...this.shelf,...Se()].forEach(n=>{s.append(this.optionCard(n,"opp"))}),t.querySelector("#lo-exit").addEventListener("click",()=>{this.cleanup(),this.onCancel()}),t.querySelector("#lo-go").addEventListener("click",()=>this.confirm())}optionCard(t,e){const s=document.createElement("button");s.className="lo-card",s.append(Ce(t));const n=document.createElement("span");return n.textContent=t.name,s.append(n),s.addEventListener("click",()=>{e==="self"?this.selfBuff=this.selfBuff?.id===t.id?null:t:this.oppDebuff=this.oppDebuff?.id===t.id?null:t,this.refreshSelection()}),s.dataset.pid=t.id,s.dataset.side=e,s}refreshSelection(){this.root.querySelectorAll(".lo-card").forEach(t=>{const e=t,s=e.dataset.side==="self"&&this.selfBuff?.id===e.dataset.pid||e.dataset.side==="opp"&&this.oppDebuff?.id===e.dataset.pid;e.classList.toggle("sel",!!s)})}startCountdown(){this.timer=setInterval(()=>{this.remain--;const t=document.getElementById("lo-timer");t&&(t.textContent=`${this.remain}s`),this.remain<=0&&this.confirm()},1e3)}confirm(){this.cleanup(),this.onDone({choice:{selfBuff:this.selfBuff,oppDebuff:this.oppDebuff}})}cleanup(){this.timer&&clearInterval(this.timer),this.timer=void 0}}class Pe{constructor(t,e){c(this,"ws");c(this,"handlers",{});c(this,"pingTimer",null);const s=e??globalThis.WebSocket;this.ws=new s(t),this.ws.onopen=()=>{this.startPing(),this.handlers.open?.()},this.ws.onmessage=n=>this.onMessage(String(n.data)),this.ws.onclose=()=>{this.stopPing(),this.handlers.close?.()},this.ws.onerror=()=>this.handlers.error?.("WS_ERROR","连接错误")}on(t,e){this.handlers[t]=e}onMessage(t){let e;try{e=JSON.parse(t)}catch{return}switch(e.type){case"matchFound":this.handlers.matchFound?.(e);break;case"turn":this.handlers.turn?.(e);break;case"opponentLeft":this.handlers.opponentLeft?.();break;case"error":this.handlers.error?.(e.code,e.message);break}}send(t){this.ws.send(JSON.stringify(t))}queue(t,e){const s=window.SuperCubeAccount?.token?.();this.send({type:"queue",name:t,bag:e,accountToken:s||void 0})}cancelQueue(){this.send({type:"cancelQueue"})}sendTurn(t,e,s){this.send({type:"turn",matchId:t,turnIndex:e,move:s})}leave(t){this.send({type:"leave",matchId:t})}startPing(){this.pingTimer=setInterval(()=>this.send({type:"ping",t:Date.now()}),5e3)}stopPing(){this.pingTimer&&clearInterval(this.pingTimer),this.pingTimer=null}close(){this.stopPing(),this.ws.close()}}function $e(i,t){for(let e=0;e<t.rotation;e++)i.rotate();if(i.active){const e=t.px-i.active.px,s=e>0?1:-1;for(let n=0;n<Math.abs(e)&&i.move(s);n++);}return i.commitTurn()}function Re(i){return{id:i.id,name:i.name,custom:i.custom,cells:i.cells.map(t=>({x:t.x,y:t.y,element:t.element}))}}class Ne{constructor(t,e){c(this,"root");c(this,"opts");c(this,"client");c(this,"game",null);c(this,"mySide","A");c(this,"matchId","");c(this,"canvas");c(this,"ctx");c(this,"cell",28);c(this,"raf",0);c(this,"rotations",0);c(this,"fallTimer");c(this,"lockPending",!1);c(this,"resultShown",!1);c(this,"flashes",[]);c(this,"touch",{active:!1,sx:0,sy:0,lx:0,ly:0,startPx:0,lock:""});c(this,"oppName","对手");c(this,"_key");c(this,"loop",()=>{this.game&&this.render(),this.raf=requestAnimationFrame(this.loop)});this.root=t,this.opts=e,this.showStatus("正在连接服务器…"),this.client=new Pe(e.serverUrl),this.client.on("open",()=>{this.showStatus("匹配中…（等待对手）"),this.client.queue(e.name,e.playerBag.map(Re))}),this.client.on("error",(s,n)=>this.showStatus(`连接失败：${n}。请检查网络后重试。`,!0)),this.client.on("close",()=>{this.game||this.showStatus("连接已断开。",!0)}),this.client.on("matchFound",s=>this.onMatchFound(s)),this.client.on("turn",s=>this.onRemoteTurn(s.by,s.move)),this.client.on("opponentLeft",()=>this.endMatch("对手已离开，你获胜！"))}showStatus(t,e=!1){this.root.innerHTML=`
       <div class="ob-status">
         <button class="btn-exit" id="ob-back">‹ 大厅</button>
         <div class="ob-spinner ${e?"err":""}"></div>
@@ -185,7 +185,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       <button class="tool-btn" id="m-workshop" title="源力工坊">⚒️</button>
       <button class="tool-btn" id="m-tutorial" title="新手教程">📖</button>
       <button class="tool-btn" id="m-settings" title="系统设置">⚙️</button>
-    </div>`,x.append(i);let t="pvp";const e=i.querySelector(".lobby-diff"),s=document.getElementById("lobby-start"),n=a=>{t=a,i.querySelectorAll(".battle-modes .mode-tile").forEach(o=>{o.classList.toggle("sel",o.dataset.mode===a)}),e.hidden=a==="online",s.innerHTML=a==="online"?'<span class="pb-icon">🌐</span> 开始匹配':'<span class="pb-icon">▶</span> 开始'};i.querySelectorAll(".battle-modes .mode-tile").forEach(a=>{a.onclick=()=>n(a.dataset.mode)}),s.onclick=()=>{t==="pvp"?_e("shared-turn"):t==="online"?Ue():et(t==="survival"?"survival":"time-attack")},document.getElementById("m-workshop").onclick=()=>qe(),document.getElementById("m-settings").onclick=()=>{L(),new we(x,I)},document.getElementById("m-tutorial").onclick=()=>{Bt()},i.querySelectorAll(".lobby-diff button").forEach(a=>{a.onclick=()=>{At=a.dataset.d,i.querySelectorAll(".lobby-diff button").forEach(o=>o.classList.remove("sel")),a.classList.add("sel")}})}function Bt(){L(),new De(x,{onBack:I,onStart:Ct})}function Ct(i){L(),H=new He(x,i,{onExit:Bt,onNext:Ct})}function _e(i){L(),new Ie(x,C,t=>{const{selfExtra:e,oppExtra:s}=Ae(C,t.choice);et(i,e,s)},I)}function Ue(){const i=y.serverUrl||"wss://",t=window.prompt("输入联网服务器地址（部署服务器后填，如 wss://你的域名）",i);!t||t==="wss://"||(y.serverUrl=t,W(),L(),new Ne(x,{serverUrl:t,name:"玩家",playerBag:C,onExit:I}))}function et(i,t,e){L(),D=new Ee(x,{mode:i,difficulty:At,playerBag:t??C,aiBag:e,onExit:I})}function qe(){L();const i=document.createElement("button");i.className="ws-back",i.textContent="‹ 返回大厅",i.onclick=I,x.append(i);const t=document.createElement("div");x.append(t),O=new xe(t,()=>{C=O.getShelf()}),C.length&&(O.shelf=[...C],O.renderShelf?.())}me();new We(x,()=>{I(),Fe()||new St(()=>{})});
+    </div>`,x.append(i);let t="pvp";const e=i.querySelector(".lobby-diff"),s=document.getElementById("lobby-start"),n=a=>{t=a,i.querySelectorAll(".battle-modes .mode-tile").forEach(o=>{o.classList.toggle("sel",o.dataset.mode===a)}),e.hidden=a==="online",s.innerHTML=a==="online"?'<span class="pb-icon">🌐</span> 开始匹配':'<span class="pb-icon">▶</span> 开始'};i.querySelectorAll(".battle-modes .mode-tile").forEach(a=>{a.onclick=()=>n(a.dataset.mode)}),s.onclick=()=>{t==="pvp"?_e("shared-turn"):t==="online"?Ue():et(t==="survival"?"survival":"time-attack")},document.getElementById("m-workshop").onclick=()=>qe(),document.getElementById("m-settings").onclick=()=>{L(),new we(x,I)},document.getElementById("m-tutorial").onclick=()=>{Bt()},i.querySelectorAll(".lobby-diff button").forEach(a=>{a.onclick=()=>{At=a.dataset.d,i.querySelectorAll(".lobby-diff button").forEach(o=>o.classList.remove("sel")),a.classList.add("sel")}})}function Bt(){L(),new De(x,{onBack:I,onStart:Ct})}function Ct(i){L(),H=new He(x,i,{onExit:Bt,onNext:Ct})}function _e(i){L(),new Ie(x,C,t=>{const{selfExtra:e,oppExtra:s}=Ae(C,t.choice);et(i,e,s)},I)}function Ue(){window.SuperCubeAccount?.ensure?.();const i="wss://match.supercubegame.com",t=window.SuperCubeAccount?.displayName?.()||"玩家";y.serverUrl=i,W(),L(),new Ne(x,{serverUrl:i,name:t,playerBag:C,onExit:I})}function et(i,t,e){L(),D=new Ee(x,{mode:i,difficulty:At,playerBag:t??C,aiBag:e,onExit:I})}function qe(){L();const i=document.createElement("button");i.className="ws-back",i.textContent="‹ 返回大厅",i.onclick=I,x.append(i);const t=document.createElement("div");x.append(t),O=new xe(t,()=>{C=O.getShelf()}),C.length&&(O.shelf=[...C],O.renderShelf?.())}me();new We(x,()=>{I(),Fe()||new St(()=>{})});
 
 </script>
 <script>
@@ -434,6 +434,261 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   try {
     f.stopBgm();
   } catch {}
+})();
+</script>
+<script>
+(() => {
+  const ACCOUNT_KEY = "supercube.account.v1";
+  const AUTH_BASE_URL = "https://match.supercubegame.com";
+  const DEFAULT_NAME = "游客玩家";
+  let panel = null;
+  let statusNode = null;
+
+  const styles = document.createElement("style");
+  styles.textContent = `
+    .lt-profile { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .sc-account-modal { position: fixed; inset: 0; z-index: 260; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(2, 4, 10, 0.72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    .sc-account-card { width: min(360px, 100%); border: 1px solid rgba(255,255,255,.12); border-radius: 22px; background: linear-gradient(180deg, rgba(24,28,40,.98), rgba(13,16,26,.98)); color: #fff; box-shadow: 0 24px 80px rgba(0,0,0,.46); padding: 22px; }
+    .sc-account-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+    .sc-account-avatar { width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; font-size: 28px; background: radial-gradient(circle at 30% 25%, #7bdcff, #695cff 58%, #171d2c); }
+    .sc-account-title { font-size: 21px; font-weight: 900; line-height: 1.1; }
+    .sc-account-sub { color: rgba(255,255,255,.62); font-size: 13px; margin-top: 5px; }
+    .sc-account-actions { display: grid; gap: 10px; }
+    .sc-account-actions button { width: 100%; border: 0; border-radius: 14px; padding: 13px 14px; font-size: 15px; font-weight: 800; color: #fff; background: rgba(255,255,255,.1); }
+    .sc-account-actions .primary { background: linear-gradient(135deg, #4fb2ff, #7f65ff); color: #06101c; }
+    .sc-account-actions .danger { background: rgba(255,90,90,.14); color: #ffb8b8; }
+    .sc-account-status { min-height: 20px; margin: 12px 0 2px; color: rgba(255,255,255,.66); font-size: 13px; line-height: 1.45; }
+    .sc-account-status.danger { color: #ffb8b8; }
+  `;
+  document.head.appendChild(styles);
+
+  function cleanName(value, fallback = DEFAULT_NAME) {
+    if (typeof value !== "string") return fallback;
+    const normalized = value.trim().replace(/\s+/g, " ");
+    return normalized ? Array.from(normalized).slice(0, 24).join("") : fallback;
+  }
+
+  function readAccount() {
+    try {
+      const raw = localStorage.getItem(ACCOUNT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeAccount(account) {
+    const next = {
+      ...account,
+      displayName: cleanName(account.displayName),
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem(ACCOUNT_KEY, JSON.stringify(next));
+    renderProfile();
+    return next;
+  }
+
+  function accountLabel(account = readAccount()) {
+    if (!account) return "未登录";
+    if (account.provider === "apple") return account.token ? "Apple 已登录" : "Apple 已登录 · 待同步";
+    if (account.provider === "guest") return account.token ? "游客身份" : "本地游客";
+    return "游客身份";
+  }
+
+  function ensureAccount() {
+    const existing = readAccount();
+    if (existing) return existing;
+    return writeAccount({
+      provider: "guest",
+      id: `local_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      displayName: DEFAULT_NAME
+    });
+  }
+
+  function setStatus(message, danger = false) {
+    if (!statusNode) return;
+    statusNode.textContent = message || "";
+    statusNode.classList.toggle("danger", danger);
+  }
+
+  async function requestJSON(path, options = {}) {
+    const response = await fetch(`${AUTH_BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        "content-type": "application/json",
+        ...(options.headers || {})
+      }
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.error || `HTTP_${response.status}`);
+    }
+    return body;
+  }
+
+  function saveServerAccount(payload) {
+    const account = payload.account || {};
+    return writeAccount({
+      provider: account.provider || "guest",
+      id: account.id || "",
+      displayName: account.displayName || DEFAULT_NAME,
+      email: account.email,
+      token: payload.token || ""
+    });
+  }
+
+  async function continueAsGuest() {
+    setStatus("正在创建游客身份...");
+    try {
+      const payload = await requestJSON("/auth/guest", {
+        method: "POST",
+        body: JSON.stringify({ displayName: cleanName(readAccount()?.displayName) })
+      });
+      saveServerAccount(payload);
+      setStatus("游客身份已准备好");
+    } catch {
+      ensureAccount();
+      setStatus("已使用本地游客身份，服务器恢复后仍可继续匹配。");
+    }
+  }
+
+  async function signInWithApple() {
+    if (!window.webkit?.messageHandlers?.supercubeAuth) {
+      setStatus("请在 iPhone App 内使用 Apple 登录。", true);
+      return;
+    }
+    setStatus("正在打开 Apple 登录...");
+    window.webkit.messageHandlers.supercubeAuth.postMessage({ type: "signInWithApple" });
+  }
+
+  async function deleteAccount() {
+    const account = readAccount();
+    if (!account) {
+      setStatus("当前没有账号。");
+      return;
+    }
+
+    if (account.token) {
+      try {
+        await requestJSON("/auth/delete", {
+          method: "POST",
+          headers: { authorization: `Bearer ${account.token}` }
+        });
+      } catch {
+        // Local deletion must still work when the account server is offline.
+      }
+    }
+
+    localStorage.removeItem(ACCOUNT_KEY);
+    renderProfile();
+    setStatus("账号已从本机移除。");
+  }
+
+  function closePanel() {
+    panel?.remove();
+    panel = null;
+    statusNode = null;
+  }
+
+  function showPanel() {
+    panel?.remove();
+    const account = readAccount();
+    panel = document.createElement("div");
+    panel.className = "sc-account-modal";
+    panel.innerHTML = `
+      <div class="sc-account-card" role="dialog" aria-modal="true" aria-label="账号">
+        <div class="sc-account-head">
+          <div class="sc-account-avatar">${account?.provider === "apple" ? "" : "🧑"}</div>
+          <div>
+            <div class="sc-account-title">${cleanName(account?.displayName)}</div>
+            <div class="sc-account-sub">${accountLabel(account)}</div>
+          </div>
+        </div>
+        <div class="sc-account-actions">
+          <button class="primary" data-action="apple">使用 Apple 登录</button>
+          <button data-action="guest">游客继续</button>
+          <button class="danger" data-action="delete">删除本机账号</button>
+          <button data-action="close">关闭</button>
+        </div>
+        <div class="sc-account-status"></div>
+      </div>
+    `;
+    statusNode = panel.querySelector(".sc-account-status");
+    panel.addEventListener("click", (event) => {
+      if (event.target === panel) closePanel();
+      const action = event.target?.dataset?.action;
+      if (action === "apple") signInWithApple();
+      if (action === "guest") continueAsGuest();
+      if (action === "delete") deleteAccount();
+      if (action === "close") closePanel();
+    });
+    document.body.appendChild(panel);
+  }
+
+  function renderProfile() {
+    const profile = document.querySelector(".lt-profile");
+    if (!profile) return;
+    const account = readAccount();
+    const title = profile.querySelector("strong");
+    const subtitle = profile.querySelector("span");
+    if (title) title.textContent = cleanName(account?.displayName, "玩家");
+    if (subtitle) subtitle.textContent = accountLabel(account);
+    profile.setAttribute("role", "button");
+    profile.setAttribute("aria-label", "账号");
+    profile.onclick = showPanel;
+  }
+
+  window.SuperCubeAccount = {
+    get: readAccount,
+    ensure: ensureAccount,
+    displayName: () => cleanName(readAccount()?.displayName, "玩家"),
+    token: () => readAccount()?.token || ""
+  };
+
+  window.SuperCubeNativeAuthResult = async (result) => {
+    if (!result?.ok) {
+      setStatus(result?.message || "Apple 登录失败", true);
+      return;
+    }
+
+    const credential = result.credential || {};
+    if (!credential.identityToken) {
+      writeAccount({
+        provider: "apple",
+        id: credential.appleUserId || "",
+        displayName: credential.displayName || "Apple 玩家",
+        email: credential.email
+      });
+      setStatus("Apple 身份已保存在本机，稍后会同步服务器。");
+      return;
+    }
+
+    setStatus("正在同步账号服务器...");
+    try {
+      const payload = await requestJSON("/auth/apple", {
+        method: "POST",
+        body: JSON.stringify({
+          identityToken: credential.identityToken,
+          displayName: credential.displayName,
+          email: credential.email
+        })
+      });
+      saveServerAccount(payload);
+      setStatus("Apple 登录已完成");
+    } catch {
+      writeAccount({
+        provider: "apple",
+        id: credential.appleUserId || "",
+        displayName: credential.displayName || "Apple 玩家",
+        email: credential.email
+      });
+      setStatus("Apple 登录已保存在本机，账号服务器暂时不可达。");
+    }
+  };
+
+  const observer = new MutationObserver(renderProfile);
+  observer.observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
+  renderProfile();
 })();
 </script>
 </body>

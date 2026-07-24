@@ -14,7 +14,7 @@ export interface PieceDefDTO {
 }
 
 export type ClientMessage =
-  | { type: "queue"; name: string; bag?: PieceDefDTO[] }
+  | { type: "queue"; name: string; bag?: PieceDefDTO[]; accountToken?: string }
   | { type: "cancelQueue" }
   | { type: "turn"; matchId: string; turnIndex: number; move: MoveDTO }
   | { type: "leave"; matchId: string }
