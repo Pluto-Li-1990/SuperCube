@@ -2,12 +2,13 @@
 
 更新时间：2026-07-24
 
-本文用于准备 `supercubegame.com` 在阿里云中国内地 ECS 上提供 SuperCube 官网与联网对战服务所需的 ICP 备案材料。
+本文用于准备 `supercubegame.com` 在阿里云中国内地 ECS 上提供 SuperCube 官网与联网对战服务所需的 ICP 备案材料。备案等待期间，TestFlight 在线对战临时使用阿里云香港 ECS。
 
 ## 结论
 
 - 当前服务器位于阿里云华北 2（北京），属于中国内地节点。
-- `match.supercubegame.com` 已解析到北京 ECS 公网 IP `39.106.138.188`。
+- 国内备案目标服务器为北京 ECS，公网 IP `39.106.138.188`。
+- 当前 TestFlight 临时节点为香港 ECS，公网 IP `47.76.131.220`，`match.supercubegame.com` 暂时解析到该香港节点。
 - 未完成 ICP 备案前，阿里云会拦截域名访问，外部访问会出现 `Non-compliance ICP Filing`。
 - 继续使用北京 ECS 的前提是先完成 ICP 备案。
 - ICP 备案通过后，网站开通 30 日内还需要按要求办理公安联网备案。
@@ -160,7 +161,7 @@ SuperCube 元素方块是一款个人开发的休闲策略方块游戏。玩家�
 7. 等待阿里云初审，通常先由阿里云检查材料。
 8. 按短信提示完成工信部短信核验。
 9. 等待管局审核。
-10. 备案通过后，恢复/确认 `supercubegame.com` 与 `match.supercubegame.com` 的 DNS 解析到 `39.106.138.188`。
+10. 备案通过后，按上线策略决定是否把 `supercubegame.com` 与 `match.supercubegame.com` 从香港临时节点切回北京 ECS `39.106.138.188`。
 11. 验证 `https://match.supercubegame.com/healthz` 不再返回备案拦截页。
 12. 在开通服务后 30 日内完成公安联网备案。
 
