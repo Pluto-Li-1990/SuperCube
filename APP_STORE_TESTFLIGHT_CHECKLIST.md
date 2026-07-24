@@ -17,9 +17,10 @@
 - 当前提交：发布前用 `git log -1 --oneline` 确认。
 - GitHub 主线：PR #16 已合并，`Pluto-Li-1990/SuperCube` 的 `main` 已切换为 iOS 正式工程。
 - 最新构建验证：Build 6 内置贴图单文件 Web 修复包，真机目标 Release 构建通过；模拟器 Release 构建通过并已启动进大厅，确认元素贴图恢复、原生加载遮罩不再压住游戏画面、首次教学第一屏为操作说明。
-- 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明原生壳不追踪、不采集数据、不使用需声明的 Required Reason API。
+- 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明不追踪；账号与联网功能会收集用于 App 功能的名称、邮箱地址和用户 ID，不使用需声明的 Required Reason API。
 - 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，GitHub Pages URL 填入 App Store Connect 后，每次账号/联网能力变更都要同步更新。
 - 服务器方案：已生成 `SERVER_PLAN.md`。
+- ICP 备案材料：已生成 `docs/icp-filing-prep.md`；`match.supercubegame.com` 指向中国内地 ECS 时，备案通过前会被阿里云拦截，不能作为在线对战发布就绪状态。
 - 分批测试计划：已生成 `TESTFLIGHT_BATCH_PLAN.md`，当前优先准备 Batch 0.1 启动验证包。
 
 ## 2. 必须完成
