@@ -27,7 +27,7 @@
 - App 名称：SuperCube 元素方块
 - Bundle ID：`com.pluto.supercube`
 - 联网服务域名：`match.supercubegame.com`
-- 隐私政策：`https://pluto-li-1990.github.io/SuperCube/privacy.html`
+- 隐私政策：`https://supercubegame.com/privacy.html`
 
 ## 可复制填写内容
 
@@ -84,25 +84,25 @@ https://supercubegame.com
 ### 技术支持网址
 
 ```text
-https://pluto-li-1990.github.io/SuperCube/privacy.html
+https://supercubegame.com/privacy.html
 ```
 
 如果后续官网上线，建议改为：
 
 ```text
-https://supercubegame.com/support
+https://supercubegame.com/support.html
 ```
 
 ### 隐私政策网址
 
 ```text
-https://pluto-li-1990.github.io/SuperCube/privacy.html
+https://supercubegame.com/privacy.html
 ```
 
 后续官网上线后可改为：
 
 ```text
-https://supercubegame.com/privacy
+https://supercubegame.com/privacy.html
 ```
 
 ### App 信息

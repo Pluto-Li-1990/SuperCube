@@ -58,10 +58,10 @@ SuperCube 在线对战内测版本，包含游客身份、Apple 登录、快速�
 
 ## 待补 URL
 
-- 隐私政策 URL：`https://pluto-li-1990.github.io/SuperCube/privacy.html`
-- 隐私政策备用 URL：`https://github.com/Pluto-Li-1990/SuperCube/blob/main/docs/privacy.md`
-- 技术支持 URL：`https://pluto-li-1990.github.io/SuperCube/support.html`
-- 营销 URL：`https://pluto-li-1990.github.io/SuperCube/`
+- 隐私政策 URL：`https://supercubegame.com/privacy.html`
+- 隐私政策备用 URL：`https://pluto-li-1990.github.io/SuperCube/privacy.html`
+- 技术支持 URL：`https://supercubegame.com/support.html`
+- 营销 URL：`https://supercubegame.com/`
 
 ## 官方字段限制备忘
 

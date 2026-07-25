@@ -71,9 +71,9 @@ SuperCube 当前不是专门面向 13 岁以下儿童的产品。我们不会故
 
 ## 9. 联系方式
 
-如对隐私政策或数据处理有疑问，请通过 GitHub 项目页面联系开发者：
+如对隐私政策或数据处理有疑问，请通过 SuperCube 技术支持页面联系开发者：
 
-`https://github.com/Pluto-Li-1990/SuperCube/issues`
+`https://supercubegame.com/support.html`
 
 ---
 
@@ -150,6 +150,6 @@ We may update this policy when SuperCube adds cloud saves, leaderboards, friends
 
 ## 9. Contact
 
-For questions about this policy or data handling, please contact the developer through the GitHub project page:
+For questions about this policy or data handling, please contact the developer through the SuperCube support page:
 
-`https://github.com/Pluto-Li-1990/SuperCube/issues`
+`https://supercubegame.com/support.html`

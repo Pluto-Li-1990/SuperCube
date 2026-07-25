@@ -18,7 +18,7 @@
 - GitHub 主线：PR #16 已合并，`Pluto-Li-1990/SuperCube` 的 `main` 已切换为 iOS 正式工程。
 - 最新构建验证：Build 7 准备账号与在线对战内测；香港 ECS 临时节点 `match.supercubegame.com` 已完成 HTTPS/WSS 部署，等待本地 Xcode Archive 上传 TestFlight 后做双机实测。
 - 隐私清单：已添加 `SuperCube/PrivacyInfo.xcprivacy`，当前声明不追踪；账号与联网功能会收集用于 App 功能的名称、邮箱地址和用户 ID，不使用需声明的 Required Reason API。
-- 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，GitHub Pages URL 填入 App Store Connect 后，每次账号/联网能力变更都要同步更新。
+- 隐私政策：已生成 `PRIVACY_POLICY.md` 与 `PRIVACY_POLICY.html`，正式 URL 为 `https://supercubegame.com/privacy.html`；每次账号/联网能力变更都要同步更新。
 - 服务器方案：已生成 `SERVER_PLAN.md`。
 - 在线对战服务器：香港 ECS 临时节点已上线，公网健康检查与 WSS 握手已通过；国内北京 ECS 继续等待 ICP 备案。
 - ICP 备案材料：已生成 `docs/icp-filing-prep.md`；`match.supercubegame.com` 指向中国内地 ECS 时，备案通过前会被阿里云拦截，不能作为在线对战发布就绪状态。
