@@ -4,105 +4,500 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>SuperCube 元素方块</title>
-  <meta name="description" content="SuperCube 元素方块 - 带元素反应的策略消除游戏">
+  <meta name="description" content="SuperCube 元素方块是一款带元素反应的策略消除游戏，支持单人挑战、教学关卡、源力工坊与在线对战。">
+  <meta property="og:title" content="SuperCube 元素方块">
+  <meta property="og:description" content="元素反应策略消除游戏。落子、连锁、反应、在线对战。">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/lobby.png">
+  <link rel="icon" href="assets/app-icon.png">
   <style>
     :root {
-      color-scheme: light dark;
+      color-scheme: dark;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.65;
-      color: #1d2433;
-      background: #f6f7fb;
+      color: #f4f7ff;
+      background: #070910;
+      line-height: 1.55;
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      padding: 32px 18px 56px;
+      background:
+        linear-gradient(180deg, rgba(7, 9, 16, 0.2), #070910 740px),
+        #070910;
     }
-    main {
-      max-width: 860px;
+
+    a {
+      color: inherit;
+    }
+
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px max(18px, env(safe-area-inset-left)) 12px;
+      background: linear-gradient(180deg, rgba(7, 9, 16, 0.9), rgba(7, 9, 16, 0));
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      font-weight: 850;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      box-shadow: 0 10px 22px rgba(38, 141, 255, 0.24);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #d9e3ff;
+      font-size: 14px;
+    }
+
+    .nav-links a {
+      min-height: 36px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hero {
+      position: relative;
+      min-height: 88vh;
+      display: grid;
+      align-items: end;
+      overflow: hidden;
+      isolation: isolate;
+      padding: 120px 18px 64px;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      background:
+        linear-gradient(180deg, rgba(7, 9, 16, 0.35), rgba(7, 9, 16, 0.86) 78%, #070910),
+        linear-gradient(90deg, rgba(7, 9, 16, 0.86), rgba(7, 9, 16, 0.22) 42%, rgba(7, 9, 16, 0.9)),
+        url("assets/lobby.png") center 18% / cover no-repeat;
+      filter: saturate(1.08);
+      transform: scale(1.03);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 34%;
+      z-index: -1;
+      background: linear-gradient(180deg, rgba(7, 9, 16, 0), #070910);
+    }
+
+    .hero-inner,
+    .section-inner {
+      width: min(1120px, 100%);
       margin: 0 auto;
-      background: #fff;
-      border: 1px solid rgba(20, 28, 45, 0.08);
-      border-radius: 14px;
-      padding: 28px;
-      box-shadow: 0 12px 34px rgba(20, 28, 45, 0.08);
     }
+
+    .hero-copy {
+      max-width: 720px;
+      padding-bottom: 12px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: #9fd6ff;
+      font-weight: 750;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #52c8ff;
+      box-shadow: 0 0 20px rgba(82, 200, 255, 0.9);
+    }
+
     h1 {
-      margin: 0 0 8px;
-      font-size: 34px;
-      line-height: 1.15;
+      margin: 0;
+      font-size: clamp(46px, 7vw, 86px);
+      line-height: 0.98;
+      letter-spacing: 0;
+      font-weight: 950;
     }
-    h2 {
-      margin-top: 28px;
+
+    .subtitle {
+      margin: 20px 0 0;
+      max-width: 620px;
+      color: #d8e0f3;
       font-size: 20px;
     }
-    p, li {
-      font-size: 16px;
-    }
-    a {
-      color: #1463d9;
-      word-break: break-all;
-    }
-    .meta {
-      color: #657089;
-      margin-top: 0;
-    }
-    .links {
+
+    .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 24px;
+      margin-top: 28px;
     }
-    .links a {
-      border: 1px solid rgba(20, 28, 45, 0.14);
-      border-radius: 12px;
-      padding: 10px 14px;
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 12px 18px;
+      border-radius: 14px;
       text-decoration: none;
+      font-weight: 850;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .button.primary {
+      color: #061018;
+      background: linear-gradient(135deg, #72d1ff, #c88cff);
+      box-shadow: 0 18px 48px rgba(90, 174, 255, 0.24);
+    }
+
+    .button.secondary {
+      color: #edf4ff;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .section {
+      padding: 72px 18px;
+    }
+
+    .section.alt {
+      background: #0c101b;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .section h2 {
+      margin: 0 0 16px;
+      font-size: 34px;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 0;
+      color: #b9c4d8;
+      font-size: 18px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 32px;
+    }
+
+    .feature {
+      min-height: 160px;
+      padding: 22px;
+      border-radius: 8px;
+      background: #131827;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .feature strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    .feature p {
+      margin: 0;
+      color: #aeb9cc;
+    }
+
+    .screens {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .screen {
+      margin: 0;
+    }
+
+    .screen img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1290 / 2796;
+      object-fit: cover;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.36);
+      background: #111;
+    }
+
+    .screen figcaption {
+      margin-top: 10px;
+      color: #c9d4e8;
+      text-align: center;
+      font-size: 14px;
       font-weight: 700;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        color: #edf2ff;
-        background: #06070d;
+
+    .status {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 34px;
+    }
+
+    .status-item {
+      padding: 24px;
+      border-radius: 8px;
+      background: #121827;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .status-item b {
+      display: block;
+      margin-bottom: 8px;
+      color: #87dcff;
+      font-size: 18px;
+    }
+
+    .status-item p {
+      margin: 0;
+      color: #b9c4d8;
+    }
+
+    .footer {
+      padding: 38px 18px 48px;
+      color: #9eaabd;
+      background: #070910;
+    }
+
+    .footer-inner {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 24px;
+    }
+
+    .footer a {
+      color: #cbd8ee;
+      text-decoration: none;
+      margin-left: 14px;
+    }
+
+    @media (max-width: 860px) {
+      .nav {
+        position: absolute;
       }
-      main {
-        background: #101420;
-        border-color: rgba(255, 255, 255, 0.12);
-        box-shadow: none;
+
+      .nav-links a:first-child {
+        display: none;
       }
-      a {
-        color: #6fc8ff;
+
+      .hero {
+        min-height: 84vh;
+        padding-top: 104px;
       }
-      .links a {
-        border-color: rgba(255, 255, 255, 0.16);
+
+      .subtitle {
+        font-size: 18px;
       }
-      .meta {
-        color: #a8b3cc;
+
+      .feature-grid,
+      .status {
+        grid-template-columns: 1fr;
+      }
+
+      .screens {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 10px;
+      }
+
+      .screen {
+        flex: 0 0 72%;
+        scroll-snap-align: start;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .brand span {
+        display: none;
+      }
+
+      .nav-links {
+        gap: 6px;
+        font-size: 13px;
+      }
+
+      .nav-links a {
+        padding: 8px 10px;
+      }
+
+      .hero {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      h1 {
+        font-size: 46px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .section {
+        padding: 56px 16px;
       }
     }
   </style>
 </head>
 <body>
-<main>
-  <h1>SuperCube 元素方块</h1>
-  <p class="meta">元素反应策略消除游戏</p>
+  <header class="nav" aria-label="SuperCube 导航">
+    <a class="brand" href="./">
+      <img src="assets/app-icon.png" alt="">
+      <span>SuperCube</span>
+    </a>
+    <nav class="nav-links" aria-label="页面链接">
+      <a href="#features">玩法</a>
+      <a href="#screens">截图</a>
+      <a href="support.html">支持</a>
+      <a href="privacy.html">隐私</a>
+    </nav>
+  </header>
 
-  <p>SuperCube 是一款围绕火、水、木、金属、冰、粘粘和生命方块展开的策略消除游戏。玩家不仅要填满整行，还要预判元素反应、地形变化和连锁机会。</p>
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <p class="eyebrow">iOS TestFlight 内测中</p>
+          <h1>SuperCube<br>元素方块</h1>
+          <p class="subtitle">把火、水、木、金属、冰、粘粘和生命放进同一块棋盘。落子、消除、触发元素反应，在 10 到 15 分钟里打一局轻量策略对战。</p>
+          <div class="actions">
+            <a class="button primary" href="#screens">查看游戏画面</a>
+            <a class="button secondary" href="support.html">获取技术支持</a>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <h2>游戏内容</h2>
-  <ul>
-    <li>经典对战：和 AI 在同一套规则下争夺节奏。</li>
-    <li>在线对战：使用游客身份或 Apple 登录进行快速匹配。</li>
-    <li>限时狂欢与生存竞技：适合 10 到 15 分钟的休息时间。</li>
-    <li>教学关卡与源力工坊：逐步理解元素效果，调整自己的组合。</li>
-  </ul>
+    <section id="features" class="section">
+      <div class="section-inner">
+        <h2>不只是把方块排成一行</h2>
+        <p class="lead">SuperCube 的棋盘会因为元素而改变。火会蔓延，水会催生，金属会下压，冰会滑动，生命会在积蓄后带来强力清屏。你能预判，也会被局面反将一军。</p>
+        <div class="feature-grid">
+          <article class="feature">
+            <strong>元素反应</strong>
+            <p>每种方块都有自己的性格，相邻、延时和天气都会改变局面。</p>
+          </article>
+          <article class="feature">
+            <strong>在线对战</strong>
+            <p>支持游客身份和 Apple 登录，进入快速匹配后直接开局。</p>
+          </article>
+          <article class="feature">
+            <strong>教学关卡</strong>
+            <p>从落子、火烧木、水催生到生命清屏，一步步看懂规则。</p>
+          </article>
+          <article class="feature">
+            <strong>源力工坊</strong>
+            <p>调整自己的元素组合，试出更适合当前打法的阵列。</p>
+          </article>
+        </div>
+      </div>
+    </section>
 
-  <h2>App Store 信息</h2>
-  <p>当前 iOS 版本处于 TestFlight 和上线前测试阶段。正式发布前，在线对战服务器、隐私政策和技术支持页面会持续保持公开可访问。</p>
+    <section id="screens" class="section alt">
+      <div class="section-inner">
+        <h2>真实游戏画面</h2>
+        <p class="lead">以下截图来自当前 iOS 测试版本，覆盖大厅、赛前暗牌、对战棋盘、教学关卡和源力工坊。</p>
+        <div class="screens" aria-label="SuperCube 游戏截图">
+          <figure class="screen">
+            <img src="assets/lobby.png" alt="SuperCube 大厅模式选择界面">
+            <figcaption>模式大厅</figcaption>
+          </figure>
+          <figure class="screen">
+            <img src="assets/loadout.png" alt="SuperCube 赛前暗牌选择界面">
+            <figcaption>赛前暗牌</figcaption>
+          </figure>
+          <figure class="screen">
+            <img src="assets/battle.png" alt="SuperCube 对战棋盘界面">
+            <figcaption>对战棋盘</figcaption>
+          </figure>
+          <figure class="screen">
+            <img src="assets/tutorial.png" alt="SuperCube 教学关卡界面">
+            <figcaption>教学关卡</figcaption>
+          </figure>
+          <figure class="screen">
+            <img src="assets/workshop.png" alt="SuperCube 源力工坊界面">
+            <figcaption>源力工坊</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
 
-  <div class="links">
-    <a href="support.html">技术支持</a>
-    <a href="privacy.html">隐私政策</a>
-  </div>
-</main>
+    <section class="section">
+      <div class="section-inner">
+        <h2>上线前测试状态</h2>
+        <p class="lead">当前版本正在准备 TestFlight 在线对战测试。游戏官网、技术支持、隐私政策和对战服务器会分开维护，降低上线期间互相影响的风险。</p>
+        <div class="status">
+          <article class="status-item">
+            <b>在线对战服务器</b>
+            <p><code>match.supercubegame.com</code> 已作为测试服使用，支持 HTTPS/WSS 加密连接。</p>
+          </article>
+          <article class="status-item">
+            <b>正式官网域名</b>
+            <p><code>supercubegame.com</code> 已购买。完成域名绑定后，官网会迁移到正式域名展示。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <span>Copyright © 2026 Zongyang Li. All rights reserved.</span>
+      <span>
+        <a href="support.html">技术支持</a>
+        <a href="privacy.html">隐私政策</a>
+      </span>
+    </div>
+  </footer>
 </body>
 </html>
