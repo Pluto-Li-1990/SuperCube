@@ -688,7 +688,579 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 
   const observer = new MutationObserver(renderProfile);
   observer.observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
-  renderProfile();
+renderProfile();
+})();
+</script>
+<style>
+/* TestFlight polish: make the workshop readable on phone screens. */
+.tool-btn {
+  min-width: 64px;
+  min-height: 64px;
+  font-size: 30px;
+}
+
+.ws-swatch {
+  min-height: 76px;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0,0,0,.75);
+}
+
+.ws-swatch::after {
+  content: attr(title);
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 7px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: rgba(0,0,0,.38);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.ws-shelf {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ws-shelf-empty {
+  grid-column: 1 / -1;
+  padding: 16px;
+  border: 1px dashed rgba(255,255,255,.16);
+  border-radius: 14px;
+  color: #9aa3b8;
+  background: rgba(255,255,255,.04);
+}
+
+.ws-shelf-item {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  align-items: center;
+  gap: 9px;
+  min-height: 74px;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  background: rgba(18,22,34,.78);
+  position: relative;
+}
+
+.ws-shelf-item canvas {
+  width: 58px;
+  height: 58px;
+  border-radius: 10px;
+  background: #080a10;
+}
+
+.ws-shelf-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ws-shelf-meta span {
+  color: #f2f6ff;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ws-shelf-meta small {
+  color: #8da0c8;
+  font-size: 12px;
+}
+
+.ws-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: rgba(255,255,255,.12);
+}
+
+@media (max-width: 520px) {
+  .tool-btn {
+    min-width: 68px;
+    min-height: 68px;
+  }
+
+  .ws-shelf {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+<script>
+(function testflightPolishPatch() {
+  if (window.__superCubeTestflightPolishV1) return;
+  window.__superCubeTestflightPolishV1 = true;
+
+  const SHELF_KEY = "supercube.workshopShelf.v1";
+  const DRAFT_KEY = "supercube.workshopDraft.v1";
+
+  function safeJSON(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function blankGrid() {
+    return Array.from({ length: 4 }, () => Array(4).fill(null));
+  }
+
+  function sanitizeElement(value) {
+    const n = Number(value);
+    return Number.isInteger(n) && n > 0 && n <= 8 ? n : null;
+  }
+
+  function loadDraft() {
+    const raw = safeJSON(DRAFT_KEY, null);
+    const grid = blankGrid();
+    if (!Array.isArray(raw)) return grid;
+    for (let y = 0; y < 4; y++) {
+      if (!Array.isArray(raw[y])) continue;
+      for (let x = 0; x < 4; x++) grid[y][x] = sanitizeElement(raw[y][x]);
+    }
+    return grid;
+  }
+
+  function saveDraft(grid) {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(grid || blankGrid()));
+    } catch {}
+  }
+
+  function normalizeCells(cells) {
+    const out = [];
+    if (!Array.isArray(cells)) return out;
+    const seen = new Set();
+    for (const cell of cells) {
+      const x = Number(cell?.x);
+      const y = Number(cell?.y);
+      const element = sanitizeElement(cell?.element);
+      if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || x > 3 || y < 0 || y > 3 || element === null) continue;
+      const key = `${x},${y}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ x, y, element });
+    }
+    try {
+      return typeof F === "function" ? F(out) : out;
+    } catch {
+      return out;
+    }
+  }
+
+  function normalizePiece(piece, index) {
+    const cells = normalizeCells(piece?.cells);
+    if (!cells.length) return null;
+    try {
+      if (typeof ot === "function" && !ot(cells).ok) return null;
+    } catch {}
+    return {
+      id: typeof piece?.id === "string" ? piece.id : `custom_saved_${index + 1}`,
+      name: String(piece?.name || `源力#${index + 1}`),
+      custom: true,
+      cells: cells.map((cell) => ({ ...cell }))
+    };
+  }
+
+  function clonePiece(piece) {
+    return {
+      id: piece.id,
+      name: piece.name,
+      custom: true,
+      cells: piece.cells.map((cell) => ({ ...cell }))
+    };
+  }
+
+  function loadShelf() {
+    const raw = safeJSON(SHELF_KEY, []);
+    if (!Array.isArray(raw)) return [];
+    return raw.map(normalizePiece).filter(Boolean).slice(0, typeof J === "number" ? J : 9);
+  }
+
+  function saveShelf(shelf) {
+    try {
+      localStorage.setItem(SHELF_KEY, JSON.stringify((shelf || []).map(clonePiece)));
+    } catch {}
+  }
+
+  function makeCell(element) {
+    try {
+      return { element, timer: -1, transformTo: null, willDestroy: false, charged: false, owner: null };
+    } catch {
+      return { element, timer: -1, charged: false };
+    }
+  }
+
+  function drawBlock(ctx, x, y, size, element) {
+    try {
+      if (typeof q === "function") {
+        q(ctx, x, y, size, makeCell(element));
+        return;
+      }
+    } catch {}
+    const colors = {
+      1: "#a98e6b",
+      2: "#ff6b45",
+      3: "#3fa9f5",
+      4: "#5bbf6a",
+      5: "#aeb7c2",
+      6: "#9fdcf0",
+      7: "#bd7be6",
+      8: "#ffcf4d"
+    };
+    ctx.fillStyle = colors[element] || "#fff";
+    ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+  }
+
+  function patchWorkshop() {
+    if (typeof xe === "undefined") return;
+    try {
+      C = loadShelf();
+    } catch {}
+
+    const originalRenderShelf = xe.prototype.renderShelf;
+    xe.prototype.renderShelf = function patchedRenderShelf() {
+      const shelfNode = document.getElementById("ws-shelf");
+      const title = document.getElementById("ws-shelf-title");
+      const limit = typeof J === "number" ? J : 9;
+      if (title) title.textContent = `陈列滚轴 (${this.shelf.length}/${limit})`;
+      if (!shelfNode) {
+        originalRenderShelf?.call(this);
+        return;
+      }
+
+      shelfNode.innerHTML = "";
+      if (!this.shelf.length) {
+        const empty = document.createElement("div");
+        empty.className = "ws-shelf-empty";
+        empty.textContent = "已入库的棋子会显示在这里，并自动保存到本机。";
+        shelfNode.append(empty);
+        return;
+      }
+
+      this.shelf.forEach((piece, index) => {
+        const item = document.createElement("div");
+        item.className = "ws-shelf-item";
+        const canvas = document.createElement("canvas");
+        canvas.width = 72;
+        canvas.height = 72;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#080a10";
+        ctx.fillRect(0, 0, 72, 72);
+        const unit = 16;
+        for (const cell of piece.cells) drawBlock(ctx, 4 + cell.x * unit, 4 + cell.y * unit, unit, cell.element);
+
+        const meta = document.createElement("div");
+        meta.className = "ws-shelf-meta";
+        const name = document.createElement("span");
+        name.textContent = piece.name || `源力#${index + 1}`;
+        const detail = document.createElement("small");
+        detail.textContent = `${piece.cells.length} 块 · 已保存`;
+        meta.append(name, detail);
+
+        const del = document.createElement("button");
+        del.className = "ws-del";
+        del.type = "button";
+        del.textContent = "×";
+        del.setAttribute("aria-label", "删除棋子");
+        del.onclick = () => {
+          this.shelf.splice(index, 1);
+          saveShelf(this.shelf);
+          try {
+            C = this.getShelf();
+          } catch {}
+          this.renderShelf();
+          this.onChange?.();
+        };
+
+        item.append(canvas, meta, del);
+        shelfNode.append(item);
+      });
+    };
+
+    const originalBuild = xe.prototype.build;
+    xe.prototype.build = function patchedBuild() {
+      this.grid = loadDraft();
+      this.shelf = loadShelf();
+      originalBuild.call(this);
+    };
+
+    const originalDraw = xe.prototype.draw;
+    xe.prototype.draw = function patchedDraw() {
+      originalDraw.call(this);
+      saveDraft(this.grid);
+    };
+
+    const originalCast = xe.prototype.cast;
+    xe.prototype.cast = function patchedCast() {
+      const before = this.shelf.length;
+      originalCast.call(this);
+      if (this.shelf.length !== before) {
+        saveShelf(this.shelf);
+        saveDraft(this.grid);
+        try {
+          C = this.getShelf();
+        } catch {}
+      }
+    };
+
+    xe.prototype.getShelf = function patchedGetShelf() {
+      return (this.shelf || []).map(clonePiece);
+    };
+  }
+
+  function installGentleBgm() {
+    if (typeof f === "undefined" || typeof y === "undefined") return;
+    try {
+      if (f.bgmTimer) clearInterval(f.bgmTimer);
+    } catch {}
+    f.bgmTimer = null;
+    f.bgmStep = 0;
+
+    f.startBgm = function relaxedBgm() {
+      if (this.bgmTimer || !y.bgm) return;
+      this.ensure?.();
+      const melody = [392, 440, 494, 440, 349, 392, 330, 294, 330, 392, 440, 392, 294, 330, 349, 392];
+      const bass = [196, 196, 220, 220, 174, 174, 196, 196];
+      const play = () => {
+        const step = this.bgmStep++ % melody.length;
+        const root = melody[step];
+        this.tone?.(root, 0.34, { channel: "bgm", type: "triangle", gain: 0.026, attack: 0.018, filter: 1900, detune: -4 });
+        if (step % 2 === 0) this.tone?.(root * 1.5, 0.2, { channel: "bgm", type: "sine", gain: 0.012, attack: 0.03, filter: 1600 });
+        if (step % 4 === 0) this.tone?.(bass[Math.floor(step / 2) % bass.length], 0.42, { channel: "bgm", type: "triangle", gain: 0.02, attack: 0.025, filter: 900 });
+      };
+      play();
+      this.bgmTimer = setInterval(play, 760);
+    };
+
+    f.stopBgm = function stopRelaxedBgm() {
+      if (this.bgmTimer) clearInterval(this.bgmTimer);
+      this.bgmTimer = null;
+    };
+
+    f.syncBgm = function syncRelaxedBgm() {
+      y.bgm ? this.startBgm() : this.stopBgm();
+    };
+
+    f.weather = function weatherCue(detail) {
+      if (!y.sfx) return;
+      if (detail === "rain-extinguish") {
+        this.tone?.(520, 0.12, { type: "sine", gain: 0.06, filter: 1600 });
+        this.tone?.(360, 0.18, { type: "triangle", gain: 0.035, filter: 900 });
+      } else if (detail === "snow-freeze") {
+        this.tone?.(880, 0.16, { type: "sine", gain: 0.045, filter: 2200 });
+        this.tone?.(1320, 0.1, { type: "sine", gain: 0.025, delay: 0.06, filter: 2600 });
+      } else if (detail === "thunder-charge") {
+        this.tone?.(92, 0.25, { type: "sawtooth", gain: 0.055, filter: 420 });
+        this.tone?.(760, 0.08, { type: "square", gain: 0.03, delay: 0.08, filter: 1800 });
+      } else if (detail && detail.startsWith("volcano")) {
+        this.tone?.(120, 0.32, { type: "triangle", gain: 0.055, filter: 520 });
+        this.tone?.(240, 0.18, { type: "sawtooth", gain: 0.022, delay: 0.04, filter: 700 });
+      }
+    };
+  }
+
+  function patchWeatherRules() {
+    try {
+      qt = function patchedWeather(grid, weather, events) {
+        for (let y0 = 0; y0 < grid.h; y0++) {
+          for (let x0 = 0; x0 < grid.w; x0++) {
+            const cell = grid.get(x0, y0);
+            switch (weather) {
+              case v.Rain:
+                if (cell.element === r.Fire) {
+                  grid.set(x0, y0, E(r.Earth));
+                  events.push({ type: "weather", x: x0, y: y0, detail: "rain-extinguish" });
+                }
+                break;
+              case v.Snow:
+                if (cell.element === r.Water) {
+                  grid.set(x0, y0, E(r.Ice));
+                  events.push({ type: "weather", x: x0, y: y0, detail: "snow-freeze" });
+                }
+                break;
+              case v.Thunder:
+                if (cell.element === r.Metal) {
+                  if (!cell.charged) events.push({ type: "weather", x: x0, y: y0, detail: "thunder-charge" });
+                  cell.charged = true;
+                }
+                break;
+              case v.Volcano:
+                if (cell.element === r.Wood) {
+                  const next = E(r.Fire);
+                  next.timer = typeof M === "number" ? M : 3;
+                  next.transformTo = r.Fire;
+                  grid.set(x0, y0, next);
+                  events.push({ type: "weather", x: x0, y: y0, detail: "volcano-ignite" });
+                } else if (cell.element === r.Life) {
+                  grid.set(x0, y0, E(r.Earth));
+                  events.push({ type: "weather", x: x0, y: y0, detail: "volcano-life" });
+                } else if (cell.element === r.Ice) {
+                  grid.set(x0, y0, E(r.Water));
+                  events.push({ type: "weather", x: x0, y: y0, detail: "volcano-melt" });
+                } else if (cell.element === r.Water) {
+                  grid.set(x0, y0, T());
+                  events.push({ type: "weather", x: x0, y: y0, detail: "volcano-evaporate" });
+                }
+                break;
+            }
+          }
+        }
+      };
+    } catch {}
+  }
+
+  const weatherCopy = {
+    "rain-extinguish": { color: "#77c8ff", symbol: "雨", log: "雨天熄灭了火焰" },
+    "snow-freeze": { color: "#bff3ff", symbol: "雪", log: "雪天把水冻成冰" },
+    "thunder-charge": { color: "#ffe66d", symbol: "雷", log: "雷暴让金属带电" },
+    "volcano-ignite": { color: "#ff8a3d", symbol: "火", log: "火山点燃了木头" },
+    "volcano-life": { color: "#ffcf4d", symbol: "命", log: "火山把生命压回砖土" },
+    "volcano-melt": { color: "#79d8ff", symbol: "融", log: "火山让冰融化成水" },
+    "volcano-evaporate": { color: "#ff9a62", symbol: "汽", log: "火山蒸发了水" }
+  };
+
+  function addEventBursts(host, events) {
+    if (!host || !Array.isArray(events)) return;
+    const now = performance.now();
+    host.weatherBursts = host.weatherBursts || [];
+    for (const event of events) {
+      const detail = event?.detail || event?.type;
+      const copy = weatherCopy[detail];
+      if (!copy || !Number.isFinite(event.x) || !Number.isFinite(event.y)) continue;
+      host.weatherBursts.push({ x: event.x, y: event.y, t: now, color: copy.color, symbol: copy.symbol });
+    }
+  }
+
+  function playWeather(events) {
+    if (typeof f === "undefined" || !Array.isArray(events)) return;
+    const seen = new Set();
+    for (const event of events) {
+      const detail = event?.detail || event?.type;
+      if (!weatherCopy[detail] || seen.has(detail)) continue;
+      seen.add(detail);
+      f.weather?.(detail);
+    }
+  }
+
+  function logWeather(host, events) {
+    if (!host || !Array.isArray(events) || typeof host.pushLog !== "function") return;
+    const seen = new Set();
+    for (const event of events) {
+      const detail = event?.detail || event?.type;
+      const line = weatherCopy[detail]?.log;
+      if (!line || seen.has(line)) continue;
+      seen.add(line);
+      host.pushLog(`天气：${line}`);
+    }
+  }
+
+  function drawEventBursts(ctx, bursts, cellSize) {
+    const now = performance.now();
+    const alive = [];
+    for (const burst of bursts || []) {
+      const age = now - burst.t;
+      if (age >= 760) continue;
+      alive.push(burst);
+      const k = 1 - age / 760;
+      const cx = burst.x * cellSize + cellSize / 2;
+      const cy = burst.y * cellSize + cellSize / 2;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, k * 1.25);
+      ctx.strokeStyle = burst.color;
+      ctx.lineWidth = 2 + k * 3;
+      ctx.shadowColor = burst.color;
+      ctx.shadowBlur = 18 * k;
+      ctx.beginPath();
+      ctx.arc(cx, cy, cellSize * (0.28 + 0.26 * (1 - k)), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = burst.color;
+      ctx.font = `900 ${Math.max(12, cellSize * 0.34)}px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(burst.symbol, cx, cy);
+      ctx.restore();
+    }
+    return alive;
+  }
+
+  function installTurnFeedback() {
+    if (typeof U !== "undefined" && U.prototype.commitTurn && !U.prototype.__polishCommitWrapped) {
+      const originalCommitTurn = U.prototype.commitTurn;
+      U.prototype.commitTurn = function patchedCommitTurn() {
+        const result = originalCommitTurn.call(this);
+        this.__lastTurnResult = result;
+        return result;
+      };
+      U.prototype.__polishCommitWrapped = true;
+    }
+
+    if (typeof Ee !== "undefined" && Ee.prototype.playTurnSfx && !Ee.prototype.__polishSfxWrapped) {
+      Ee.prototype.playTurnSfx = function patchedPlayTurnSfx(result) {
+        const res = result || { events: [], linesCleared: 0, ancientLife: false };
+        try {
+          f.lock?.();
+          if ((res.events || []).some((event) => event.type !== "weather")) f.reaction?.();
+          if (res.linesCleared > 0) f.clear?.(res.linesCleared);
+          if (res.ancientLife) f.ancient?.();
+        } catch {}
+        addEventBursts(this, res.events);
+        playWeather(res.events);
+        logWeather(this, res.events);
+      };
+      Ee.prototype.__polishSfxWrapped = true;
+    }
+
+    for (const [klassName, methodName] of [["Ne", "commitMine"], ["Ne", "onRemoteTurn"], ["He", "commit"]]) {
+      try {
+        const klass = klassName === "Ne" ? Ne : He;
+        if (!klass?.prototype?.[methodName] || klass.prototype[`__polish_${methodName}`]) continue;
+        const original = klass.prototype[methodName];
+        klass.prototype[methodName] = function patchedTurnMethod(...args) {
+          const output = original.apply(this, args);
+          const result = this.game?.__lastTurnResult;
+          if (result) {
+            addEventBursts(this, result.events);
+            playWeather(result.events);
+            logWeather(this, result.events);
+          }
+          return output;
+        };
+        klass.prototype[`__polish_${methodName}`] = true;
+      } catch {}
+    }
+
+    for (const klass of [typeof Ee !== "undefined" ? Ee : null, typeof Ne !== "undefined" ? Ne : null, typeof He !== "undefined" ? He : null]) {
+      if (!klass?.prototype?.render || klass.prototype.__polishRenderWrapped) continue;
+      const originalRender = klass.prototype.render;
+      klass.prototype.render = function patchedRender(...args) {
+        const output = originalRender.apply(this, args);
+        if (this.ctx && this.cell) this.weatherBursts = drawEventBursts(this.ctx, this.weatherBursts, this.cell);
+        return output;
+      };
+      klass.prototype.__polishRenderWrapped = true;
+    }
+  }
+
+  patchWorkshop();
+  installGentleBgm();
+  patchWeatherRules();
+  installTurnFeedback();
 })();
 </script>
 </body>
