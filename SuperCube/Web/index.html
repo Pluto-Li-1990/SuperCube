@@ -442,6 +442,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   const AUTH_BASE_URL = "https://match.supercubegame.com";
   const DEFAULT_NAME = "游客玩家";
   let panel = null;
+  let loginGate = null;
   let statusNode = null;
 
   const styles = document.createElement("style");
@@ -459,6 +460,25 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     .sc-account-actions .danger { background: rgba(255,90,90,.14); color: #ffb8b8; }
     .sc-account-status { min-height: 20px; margin: 12px 0 2px; color: rgba(255,255,255,.66); font-size: 13px; line-height: 1.45; }
     .sc-account-status.danger { color: #ffb8b8; }
+    .sc-login-gate { position: fixed; inset: 0; z-index: 190; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 22px max(28px, env(safe-area-inset-bottom)); overflow: hidden; background: radial-gradient(circle at 50% 26%, rgba(54,163,255,.28), transparent 34%), radial-gradient(circle at 70% 62%, rgba(199,125,255,.2), transparent 30%), #070911; }
+    .sc-login-gate::before { content: ""; position: absolute; inset: -35%; background: conic-gradient(from 120deg at 45% 40%, #102443, #26143f, #0b2025, #102443); filter: blur(70px); opacity: .42; animation: scLoginSpin 18s linear infinite; }
+    @keyframes scLoginSpin { to { transform: rotate(360deg); } }
+    .sc-login-shell { position: relative; width: min(420px, 100%); display: flex; flex-direction: column; align-items: stretch; gap: 18px; color: #fff; }
+    .sc-login-brand { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 4px; }
+    .sc-login-cube { display: grid; grid-template-columns: repeat(2, 46px); grid-template-rows: repeat(2, 46px); gap: 5px; transform: rotate(-7deg); filter: drop-shadow(0 14px 34px rgba(76,149,255,.42)); }
+    .sc-login-tile { width: 46px; height: 46px; border-radius: 13px; background: linear-gradient(145deg, rgba(90,168,255,.95), rgba(199,125,255,.72)); box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 22px rgba(0,0,0,.36); }
+    .sc-login-tile:nth-child(2) { background: linear-gradient(145deg, #58c5ff, #5f7cff); }
+    .sc-login-tile:nth-child(3) { background: linear-gradient(145deg, #62df8e, #34a65a); }
+    .sc-login-tile:nth-child(4) { background: linear-gradient(145deg, #ffd35f, #ff8f4a); }
+    .sc-login-title { font-size: 39px; font-weight: 950; letter-spacing: 1px; background: linear-gradient(110deg,#66b6ff,#d68cff,#ffe06d); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .sc-login-tagline { color: rgba(255,255,255,.66); font-size: 14px; }
+    .sc-login-panel { border: 1px solid rgba(255,255,255,.1); border-radius: 24px; background: linear-gradient(180deg, rgba(24,28,43,.78), rgba(11,14,23,.78)); box-shadow: 0 24px 80px rgba(0,0,0,.42); padding: 20px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+    .sc-login-panel h2 { margin: 0 0 7px; font-size: 24px; }
+    .sc-login-panel p { margin: 0 0 18px; color: rgba(255,255,255,.66); line-height: 1.55; font-size: 14px; }
+    .sc-login-actions { display: grid; gap: 10px; }
+    .sc-login-actions button { width: 100%; border: 0; border-radius: 16px; padding: 15px 16px; font-size: 16px; font-weight: 900; color: #fff; background: rgba(255,255,255,.1); }
+    .sc-login-actions .primary { color: #06101c; background: linear-gradient(135deg, #67c0ff, #8b73ff); box-shadow: 0 10px 28px rgba(76,157,255,.26); }
+    .sc-login-foot { margin-top: 14px; color: rgba(255,255,255,.46); font-size: 12px; line-height: 1.55; text-align: center; }
   `;
   document.head.appendChild(styles);
 
@@ -511,6 +531,14 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     statusNode.classList.toggle("danger", danger);
   }
 
+  function dismissAuthUI(delay = 450) {
+    setTimeout(() => {
+      closePanel();
+      closeLoginGate();
+      renderProfile();
+    }, delay);
+  }
+
   async function requestJSON(path, options = {}) {
     const response = await fetch(`${AUTH_BASE_URL}${path}`, {
       ...options,
@@ -546,9 +574,11 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       });
       saveServerAccount(payload);
       setStatus("游客身份已准备好");
+      dismissAuthUI();
     } catch {
       ensureAccount();
       setStatus("已使用本地游客身份，服务器恢复后仍可继续匹配。");
+      dismissAuthUI(650);
     }
   }
 
@@ -582,12 +612,60 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     localStorage.removeItem(ACCOUNT_KEY);
     renderProfile();
     setStatus("账号已从本机移除。");
+    setTimeout(() => {
+      closePanel();
+      showLoginGate(true);
+    }, 500);
   }
 
   function closePanel() {
     panel?.remove();
     panel = null;
-    statusNode = null;
+    if (!loginGate) statusNode = null;
+  }
+
+  function closeLoginGate() {
+    loginGate?.remove();
+    loginGate = null;
+    if (!panel) statusNode = null;
+  }
+
+  function showLoginGate(force = false) {
+    if (!force && readAccount()) return;
+    loginGate?.remove();
+    loginGate = document.createElement("div");
+    loginGate.className = "sc-login-gate";
+    loginGate.innerHTML = `
+      <div class="sc-login-shell">
+        <div class="sc-login-brand">
+          <div class="sc-login-cube" aria-hidden="true">
+            <div class="sc-login-tile"></div>
+            <div class="sc-login-tile"></div>
+            <div class="sc-login-tile"></div>
+            <div class="sc-login-tile"></div>
+          </div>
+          <div class="sc-login-title">SUPERCUBE</div>
+          <div class="sc-login-tagline">元素 · 天气 · 10 分钟来一局</div>
+        </div>
+        <div class="sc-login-panel" role="dialog" aria-modal="true" aria-label="登录 SuperCube">
+          <h2>选择你的身份</h2>
+          <p>登录后进入大厅。Apple 登录适合长期保存战绩；游客身份可以马上开始，之后也能再绑定。</p>
+          <div class="sc-login-actions">
+            <button class="primary" data-action="apple">使用 Apple 登录</button>
+            <button data-action="guest">游客开始</button>
+          </div>
+          <div class="sc-account-status"></div>
+          <div class="sc-login-foot">我们只保存对战所需的账号标识、昵称与基础记录，不读取通讯录、照片或定位。</div>
+        </div>
+      </div>
+    `;
+    statusNode = loginGate.querySelector(".sc-account-status");
+    loginGate.addEventListener("click", (event) => {
+      const action = event.target?.dataset?.action;
+      if (action === "apple") signInWithApple();
+      if (action === "guest") continueAsGuest();
+    });
+    document.body.appendChild(loginGate);
   }
 
   function showPanel() {
@@ -629,8 +707,10 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     const profile = document.querySelector(".lt-profile");
     if (!profile) return;
     const account = readAccount();
-    const title = profile.querySelector("strong");
-    const subtitle = profile.querySelector("span");
+    const avatar = profile.querySelector(".lt-avatar");
+    const title = profile.querySelector(".lt-name, strong");
+    const subtitle = profile.querySelector(".lt-rank, span");
+    if (avatar) avatar.textContent = account?.provider === "apple" ? "" : "🧑";
     if (title) title.textContent = cleanName(account?.displayName, "玩家");
     if (subtitle) subtitle.textContent = accountLabel(account);
     profile.setAttribute("role", "button");
@@ -660,6 +740,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         email: credential.email
       });
       setStatus("Apple 身份已保存在本机，稍后会同步服务器。");
+      dismissAuthUI();
       return;
     }
 
@@ -675,6 +756,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       });
       saveServerAccount(payload);
       setStatus("Apple 登录已完成");
+      dismissAuthUI();
     } catch {
       writeAccount({
         provider: "apple",
@@ -683,12 +765,14 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         email: credential.email
       });
       setStatus("Apple 登录已保存在本机，账号服务器暂时不可达。");
+      dismissAuthUI(650);
     }
   };
 
   const observer = new MutationObserver(renderProfile);
   observer.observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
-renderProfile();
+  renderProfile();
+  showLoginGate();
 })();
 </script>
 <style>
