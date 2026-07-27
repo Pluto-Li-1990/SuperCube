@@ -491,11 +491,13 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 (() => {
   const ACCOUNT_KEY = "supercube.account.v1";
   const STORY_KEY = "supercube.sourceWorldIntro.v1";
+  const ONBOARDING_TUTORIAL_KEY = "supercube.onboardingTutorial.v1";
   const AUTH_BASE_URL = "https://match.supercubegame.com";
   const DEFAULT_NAME = "游客玩家";
   let panel = null;
   let loginGate = null;
   let storyPanel = null;
+  let onboardingPanel = null;
   let statusNode = null;
 
   const styles = document.createElement("style");
@@ -543,6 +545,11 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     .sc-story-actions button { border: 0; border-radius: 15px; padding: 13px 16px; color: #fff; font-weight: 900; background: rgba(255,255,255,.1); }
     .sc-story-actions .primary { color: #07111c; background: linear-gradient(135deg, #ffd45d, #62c3ff); }
     .sc-story-actions .muted { color: rgba(255,255,255,.62); background: transparent; padding-left: 8px; padding-right: 8px; }
+    .sc-onboarding-lock { position: fixed; inset: 0; z-index: 180; display: flex; align-items: center; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom)); background: rgba(4,6,13,.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .sc-onboarding-card { width: min(390px, 100%); border-radius: 22px; padding: 22px; color: #f5f8ff; background: linear-gradient(180deg, rgba(26,31,48,.96), rgba(10,13,22,.98)); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 24px 80px rgba(0,0,0,.52); }
+    .sc-onboarding-card h2 { margin: 0 0 10px; font-size: 24px; }
+    .sc-onboarding-card p { margin: 0 0 18px; color: rgba(245,248,255,.72); line-height: 1.62; font-size: 14px; }
+    .sc-onboarding-card button { width: 100%; border: 0; border-radius: 16px; padding: 15px 16px; color: #07111c; font-size: 16px; font-weight: 950; background: linear-gradient(135deg, #ffd45d, #62c3ff); }
   `;
   document.head.appendChild(styles);
 
@@ -573,6 +580,106 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     try {
       localStorage.setItem(STORY_KEY, "1");
     } catch {}
+  }
+
+  function clearLegacyTutorialOverlay() {
+    document.querySelectorAll(".tut-overlay").forEach((node) => node.remove());
+  }
+
+  function tutorialProgress() {
+    try {
+      if (typeof Lt === "function") return Lt();
+      return Number(localStorage.getItem("supercube.tutorialProgress") || "0") || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function needsOnboardingTutorial() {
+    try {
+      if (localStorage.getItem(ONBOARDING_TUTORIAL_KEY) === "done") return false;
+      if (tutorialProgress() >= 1) {
+        localStorage.setItem(ONBOARDING_TUTORIAL_KEY, "done");
+        return false;
+      }
+    } catch {
+      if (tutorialProgress() >= 1) return false;
+    }
+    return true;
+  }
+
+  function appReady() {
+    return !document.querySelector(".splash") && !!document.querySelector(".lobby, .tutorial-select, .battle-wrap, .tutorial-run");
+  }
+
+  function whenAppReady(fn, tries = 0) {
+    if (appReady() || tries > 80) {
+      fn();
+      return;
+    }
+    setTimeout(() => whenAppReady(fn, tries + 1), 100);
+  }
+
+  function closeOnboardingPanel() {
+    onboardingPanel?.remove();
+    onboardingPanel = null;
+  }
+
+  function startFirstTutorialLevel() {
+    closeOnboardingPanel();
+    clearLegacyTutorialOverlay();
+    whenAppReady(() => {
+      try {
+        const first = Array.isArray(tt) ? tt[0] : null;
+        if (first && typeof Ct === "function") {
+          Ct(first);
+          return;
+        }
+      } catch {}
+      try {
+        if (typeof Bt === "function") Bt();
+      } catch {}
+    });
+  }
+
+  function continueAfterStory() {
+    if (needsOnboardingTutorial()) {
+      startFirstTutorialLevel();
+      return;
+    }
+    enforceOnboardingTutorial();
+  }
+
+  function enforceOnboardingTutorial() {
+    if (!readAccount() || storyPanel || loginGate || panel || !needsOnboardingTutorial()) {
+      closeOnboardingPanel();
+      return;
+    }
+    if (!document.querySelector(".lobby")) return;
+    if (onboardingPanel) return;
+    clearLegacyTutorialOverlay();
+    onboardingPanel = document.createElement("div");
+    onboardingPanel.className = "sc-onboarding-lock";
+    onboardingPanel.innerHTML = `
+      <div class="sc-onboarding-card" role="dialog" aria-modal="true" aria-label="新手教学">
+        <h2>先完成第 1 关</h2>
+        <p>源界的落子、消除和元素反应很容易上手，但第一局必须先走完教学关卡。完成第 1 关后，源界中枢会开放全部模式。</p>
+        <button type="button" data-action="start-tutorial">开始教学</button>
+      </div>
+    `;
+    let starting = false;
+    const start = () => {
+      if (starting) return;
+      starting = true;
+      startFirstTutorialLevel();
+    };
+    onboardingPanel.addEventListener("click", (event) => {
+      if (event.target?.closest?.("[data-action='start-tutorial']")) start();
+    });
+    onboardingPanel.addEventListener("pointerup", (event) => {
+      if (event.target?.closest?.("[data-action='start-tutorial']")) start();
+    });
+    document.body.appendChild(onboardingPanel);
   }
 
   function writeAccount(account) {
@@ -613,8 +720,10 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     setTimeout(() => {
       closePanel();
       closeLoginGate();
+      clearLegacyTutorialOverlay();
       renderProfile();
       showSourceStory();
+      enforceOnboardingTutorial();
     }, delay);
   }
 
@@ -716,6 +825,8 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 
   function showSourceStory(force = false) {
     if (storyPanel || loginGate || (!force && hasSeenStory()) || !readAccount()) return;
+    clearLegacyTutorialOverlay();
+    const mustTeach = needsOnboardingTutorial();
     storyPanel = document.createElement("div");
     storyPanel.className = "sc-story";
     storyPanel.innerHTML = `
@@ -729,23 +840,33 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         </div>
         <div class="sc-story-callout">标准对战，是源界最稳定的法则。未来出现的时空乱流，则是平行源界短暂交汇后的异常回声。</div>
         <div class="sc-story-actions">
-          <button class="primary" data-action="enter">进入源界</button>
-          <button class="muted" data-action="skip">跳过</button>
+          <button class="primary" type="button" data-action="enter">${mustTeach ? "开始第 1 关" : "进入源界"}</button>
+          <button class="muted" type="button" data-action="skip">${mustTeach ? "跳过介绍" : "跳过"}</button>
         </div>
       </div>
     `;
-    storyPanel.addEventListener("click", (event) => {
-      const action = event.target?.dataset?.action;
+    let closing = false;
+    const finish = (event) => {
+      const action = event.target?.closest?.("[data-action]")?.dataset?.action;
       if (action === "enter" || action === "skip") {
+        if (closing) return;
+        closing = true;
+        event.preventDefault?.();
         markStorySeen();
         closeSourceStory();
+        continueAfterStory();
       }
-    });
+    };
+    storyPanel.addEventListener("click", finish, true);
+    storyPanel.addEventListener("pointerup", finish, true);
+    storyPanel.addEventListener("touchend", finish, true);
     document.body.appendChild(storyPanel);
   }
 
   function showLoginGate(force = false) {
     if (!force && readAccount()) return;
+    closeOnboardingPanel();
+    clearLegacyTutorialOverlay();
     loginGate?.remove();
     loginGate = document.createElement("div");
     loginGate.className = "sc-login-gate";
@@ -883,11 +1004,17 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     }
   };
 
-  const observer = new MutationObserver(renderProfile);
+  const observer = new MutationObserver(() => {
+    renderProfile();
+    enforceOnboardingTutorial();
+  });
   observer.observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
   renderProfile();
   showLoginGate();
-  showSourceStory();
+  whenAppReady(() => {
+    showSourceStory();
+    enforceOnboardingTutorial();
+  });
 })();
 </script>
 <style>
