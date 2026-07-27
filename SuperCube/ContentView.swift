@@ -33,7 +33,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.backgroundColor = .black
-        webView.isOpaque = false
+        webView.isOpaque = true
         webView.scrollView.backgroundColor = .black
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
@@ -179,7 +179,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
             self?.checkRenderedPage(loadID: currentLoadID)
         }
         renderCheckWorkItem = renderCheck
-        DispatchQueue.main.asyncAfter(deadline: .now() + (loadingLocalWeb ? 0.25 : 1.2), execute: renderCheck)
+        DispatchQueue.main.asyncAfter(deadline: .now() + (loadingLocalWeb ? 3.9 : 1.2), execute: renderCheck)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -200,7 +200,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         }
     }
 
-    private func checkRenderedPage(loadID currentLoadID: Int) {
+    private func checkRenderedPage(loadID currentLoadID: Int, attempt: Int = 0) {
         guard loadID == currentLoadID else { return }
         let script = """
         (() => {
@@ -208,7 +208,6 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
             ".sc-login-gate",
             ".sc-story",
             ".sc-onboarding-lock",
-            ".splash",
             ".lobby",
             ".tutorial-select",
             ".tutorial-run",
@@ -222,8 +221,11 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
             if (!element) return false;
             const rect = element.getBoundingClientRect();
             const style = window.getComputedStyle(element);
+            const hasContent = (element.innerText || element.textContent || "").replace(/\\s+/g, "").length > 1 ||
+              !!element.querySelector("button, canvas, img, svg");
             return rect.width > 0 &&
               rect.height > 0 &&
+              hasContent &&
               style.display !== "none" &&
               style.visibility !== "hidden" &&
               style.opacity !== "0";
@@ -235,6 +237,21 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
             let rendered = result as? Bool ?? false
             if rendered {
                 self.markPageRendered(reason: "render-check")
+                return
+            }
+
+            if self.loadingLocalWeb && attempt < 2 {
+                let recoveryScript = "window.__supercubeForceVisibleUI && window.__supercubeForceVisibleUI('native-render-check-\(attempt)')"
+                self.webView.evaluateJavaScript(recoveryScript) { _, error in
+                    if let error {
+                        print("SuperCube native recovery probe failed: \(error.localizedDescription)")
+                    }
+                }
+                let retry = DispatchWorkItem { [weak self] in
+                    self?.checkRenderedPage(loadID: currentLoadID, attempt: attempt + 1)
+                }
+                self.renderCheckWorkItem = retry
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.1, execute: retry)
                 return
             }
 

@@ -545,8 +545,8 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     .sc-story-actions button { border: 0; border-radius: 15px; padding: 13px 16px; color: #fff; font-weight: 900; background: rgba(255,255,255,.1); }
     .sc-story-actions .primary { color: #07111c; background: linear-gradient(135deg, #ffd45d, #62c3ff); }
     .sc-story-actions .muted { color: rgba(255,255,255,.62); background: transparent; padding-left: 8px; padding-right: 8px; }
-    .sc-onboarding-lock { position: fixed; inset: 0; z-index: 180; display: flex; align-items: center; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom)); background: rgba(4,6,13,.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
-    .sc-onboarding-card { width: min(390px, 100%); border-radius: 22px; padding: 22px; color: #f5f8ff; background: linear-gradient(180deg, rgba(26,31,48,.96), rgba(10,13,22,.98)); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 24px 80px rgba(0,0,0,.52); }
+    .sc-onboarding-lock { position: fixed; inset: 0; z-index: 180; display: flex; align-items: center; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 20px max(28px, env(safe-area-inset-bottom)); background: radial-gradient(circle at 50% 28%, rgba(54,163,255,.22), transparent 34%), rgba(4,6,13,.94); }
+    .sc-onboarding-card { position: relative; width: min(390px, 100%); border-radius: 22px; padding: 22px; color: #f5f8ff; background: linear-gradient(180deg, rgba(26,31,48,.98), rgba(10,13,22,.99)); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 24px 80px rgba(0,0,0,.52); transform: translateZ(0); }
     .sc-onboarding-card h2 { margin: 0 0 10px; font-size: 24px; }
     .sc-onboarding-card p { margin: 0 0 18px; color: rgba(245,248,255,.72); line-height: 1.62; font-size: 14px; }
     .sc-onboarding-card button { width: 100%; border: 0; border-radius: 16px; padding: 15px 16px; color: #07111c; font-size: 16px; font-weight: 950; background: linear-gradient(135deg, #ffd45d, #62c3ff); }
@@ -612,6 +612,99 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     return !document.querySelector(".splash") && !!document.querySelector(".lobby, .tutorial-select, .battle-wrap, .tutorial-run");
   }
 
+  function hasVisibleGameUI() {
+    const selectors = ".sc-login-gate, .sc-story, .sc-onboarding-lock, .lobby, .tutorial-select, .tutorial-run, .battle-wrap, .ob-status, .ws-wrap, .settings-wrap";
+    return Array.from(document.querySelectorAll(selectors)).some((node) => {
+      const rect = node.getBoundingClientRect();
+      const style = window.getComputedStyle(node);
+      const hasContent = (node.innerText || node.textContent || "").replace(/\s+/g, "").length > 1 ||
+        !!node.querySelector("button, canvas, img, svg");
+      return hasContent && rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    });
+  }
+
+  function showStartupFallback(reason = "unknown") {
+    if (document.querySelector(".splash") || hasVisibleGameUI()) return;
+    try {
+      if (typeof I === "function") I();
+    } catch (error) {
+      console.warn("SuperCube startup lobby recovery failed", reason, error);
+    }
+    if (!readAccount()) {
+      showLoginGate(true);
+    } else if (!hasSeenStory()) {
+      showSourceStory(true);
+    } else if (needsOnboardingTutorial()) {
+      enforceOnboardingTutorial();
+      if (!hasVisibleGameUI()) startFirstTutorialLevel();
+    }
+    if (hasVisibleGameUI()) return;
+    const fallback = document.createElement("div");
+    fallback.className = "sc-login-gate";
+    fallback.innerHTML = `
+      <div class="sc-login-shell">
+        <div class="sc-login-panel" role="dialog" aria-modal="true" aria-label="启动恢复">
+          <h2>SuperCube 正在恢复</h2>
+          <p>刚刚的启动流程没有接上界面。点下面按钮回到源界中枢。</p>
+          <div class="sc-login-actions">
+            <button class="primary" data-action="recover">进入源界中枢</button>
+            <button data-action="reset">重置本机引导</button>
+          </div>
+          <div class="sc-login-foot">reason: ${reason}</div>
+        </div>
+      </div>
+    `;
+    fallback.addEventListener("click", (event) => {
+      const action = event.target?.dataset?.action;
+      if (action === "reset") {
+        try {
+          localStorage.removeItem(STORY_KEY);
+          localStorage.removeItem(ONBOARDING_TUTORIAL_KEY);
+        } catch {}
+      }
+      if (action === "recover" || action === "reset") {
+        fallback.remove();
+        try {
+          if (typeof I === "function") I();
+        } catch {}
+        if (!readAccount()) showLoginGate(true);
+        else if (!hasSeenStory()) showSourceStory(true);
+        else enforceOnboardingTutorial();
+      }
+    });
+    document.body.appendChild(fallback);
+  }
+
+  function signalNativeReady(label = "visible-ui") {
+    if (document.querySelector(".splash") || !hasVisibleGameUI()) return false;
+    window.__supercubeNativeReady?.(label);
+    return true;
+  }
+
+  window.__supercubeForceVisibleUI = function(reason = "native") {
+    if (!document.querySelector(".splash")) {
+      showStartupFallback(reason);
+      if (!hasVisibleGameUI()) {
+        try {
+          if (typeof I === "function") I();
+        } catch {}
+        if (!readAccount()) showLoginGate(true);
+        else if (!hasSeenStory()) showSourceStory(true);
+        else enforceOnboardingTutorial();
+      }
+    }
+    const ok = signalNativeReady(`force-visible-ui:${reason}`);
+    return {
+      ok,
+      reason,
+      splash: !!document.querySelector(".splash"),
+      account: !!readAccount(),
+      storySeen: hasSeenStory(),
+      needsTutorial: needsOnboardingTutorial(),
+      appChildren: document.getElementById("app")?.children.length ?? 0
+    };
+  };
+
   function whenAppReady(fn, tries = 0) {
     if (appReady() || tries > 80) {
       fn();
@@ -655,31 +748,9 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       closeOnboardingPanel();
       return;
     }
-    if (!document.querySelector(".lobby")) return;
-    if (onboardingPanel) return;
     clearLegacyTutorialOverlay();
-    onboardingPanel = document.createElement("div");
-    onboardingPanel.className = "sc-onboarding-lock";
-    onboardingPanel.innerHTML = `
-      <div class="sc-onboarding-card" role="dialog" aria-modal="true" aria-label="新手教学">
-        <h2>先完成第 1 关</h2>
-        <p>源界的落子、消除和元素反应很容易上手，但第一局必须先走完教学关卡。完成第 1 关后，源界中枢会开放全部模式。</p>
-        <button type="button" data-action="start-tutorial">开始教学</button>
-      </div>
-    `;
-    let starting = false;
-    const start = () => {
-      if (starting) return;
-      starting = true;
-      startFirstTutorialLevel();
-    };
-    onboardingPanel.addEventListener("click", (event) => {
-      if (event.target?.closest?.("[data-action='start-tutorial']")) start();
-    });
-    onboardingPanel.addEventListener("pointerup", (event) => {
-      if (event.target?.closest?.("[data-action='start-tutorial']")) start();
-    });
-    document.body.appendChild(onboardingPanel);
+    if (document.querySelector(".tutorial-run") || document.querySelector(".tutorial-select")) return;
+    startFirstTutorialLevel();
   }
 
   function writeAccount(account) {
@@ -1015,6 +1086,12 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     showSourceStory();
     enforceOnboardingTutorial();
   });
+  [3600, 5200, 8500].forEach((delay) => {
+    setTimeout(() => {
+      showStartupFallback(`blank-after-${delay}`);
+      signalNativeReady(`startup-check:${delay}`);
+    }, delay);
+  });
 })();
 </script>
 <script>
@@ -1025,7 +1102,6 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     ".sc-login-gate",
     ".sc-story",
     ".sc-onboarding-lock",
-    ".splash",
     ".lobby",
     ".tutorial-select",
     ".tutorial-run",
@@ -1035,15 +1111,28 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     ".settings-wrap"
   ].join(",");
   let sent = false;
+  const isVisible = (element) => {
+    const rect = element.getBoundingClientRect();
+    const style = window.getComputedStyle(element);
+    const hasContent = (element.innerText || element.textContent || "").replace(/\s+/g, "").length > 1 ||
+      !!element.querySelector("button, canvas, img, svg");
+    return rect.width > 0 &&
+      rect.height > 0 &&
+      hasContent &&
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      style.opacity !== "0";
+  };
   const notify = () => {
-    if (sent || !document.querySelector(selectors)) return;
+    if (sent || document.querySelector(".splash")) return;
+    if (!Array.from(document.querySelectorAll(selectors)).some(isVisible)) return;
     sent = true;
     window.__supercubeNativeReady?.("visible-ui");
   };
   notify();
   const observer = new MutationObserver(notify);
   observer.observe(document.body, { childList: true, subtree: true });
-  [150, 500, 1200, 2500, 5000].forEach((delay) => setTimeout(notify, delay));
+  [150, 500, 1200, 2500, 3300, 3800, 5000, 8000].forEach((delay) => setTimeout(notify, delay));
 })();
 </script>
 <style>
