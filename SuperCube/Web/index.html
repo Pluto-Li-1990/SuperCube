@@ -612,6 +612,67 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     return !document.querySelector(".splash") && !!document.querySelector(".lobby, .tutorial-select, .battle-wrap, .tutorial-run");
   }
 
+  function hasVisibleGameUI() {
+    const selectors = ".sc-login-gate, .sc-story, .sc-onboarding-lock, .lobby, .tutorial-select, .tutorial-run, .battle-wrap, .ob-status, .ws-wrap, .settings-wrap";
+    return Array.from(document.querySelectorAll(selectors)).some((node) => {
+      const rect = node.getBoundingClientRect();
+      const style = window.getComputedStyle(node);
+      return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    });
+  }
+
+  function showStartupFallback(reason = "unknown") {
+    if (document.querySelector(".splash") || hasVisibleGameUI()) return;
+    try {
+      if (!document.querySelector(".lobby") && typeof I === "function") I();
+    } catch (error) {
+      console.warn("SuperCube startup lobby recovery failed", reason, error);
+    }
+    if (!readAccount()) {
+      showLoginGate(true);
+    } else if (!hasSeenStory()) {
+      showSourceStory(true);
+    } else if (needsOnboardingTutorial()) {
+      enforceOnboardingTutorial();
+      if (!hasVisibleGameUI()) startFirstTutorialLevel();
+    }
+    if (hasVisibleGameUI()) return;
+    const fallback = document.createElement("div");
+    fallback.className = "sc-login-gate";
+    fallback.innerHTML = `
+      <div class="sc-login-shell">
+        <div class="sc-login-panel" role="dialog" aria-modal="true" aria-label="启动恢复">
+          <h2>SuperCube 正在恢复</h2>
+          <p>刚刚的启动流程没有接上界面。点下面按钮回到源界中枢。</p>
+          <div class="sc-login-actions">
+            <button class="primary" data-action="recover">进入源界中枢</button>
+            <button data-action="reset">重置本机引导</button>
+          </div>
+          <div class="sc-login-foot">reason: ${reason}</div>
+        </div>
+      </div>
+    `;
+    fallback.addEventListener("click", (event) => {
+      const action = event.target?.dataset?.action;
+      if (action === "reset") {
+        try {
+          localStorage.removeItem(STORY_KEY);
+          localStorage.removeItem(ONBOARDING_TUTORIAL_KEY);
+        } catch {}
+      }
+      if (action === "recover" || action === "reset") {
+        fallback.remove();
+        try {
+          if (typeof I === "function") I();
+        } catch {}
+        if (!readAccount()) showLoginGate(true);
+        else if (!hasSeenStory()) showSourceStory(true);
+        else enforceOnboardingTutorial();
+      }
+    });
+    document.body.appendChild(fallback);
+  }
+
   function whenAppReady(fn, tries = 0) {
     if (appReady() || tries > 80) {
       fn();
@@ -1015,6 +1076,9 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     showSourceStory();
     enforceOnboardingTutorial();
   });
+  [3600, 5200, 8500].forEach((delay) => {
+    setTimeout(() => showStartupFallback(`blank-after-${delay}`), delay);
+  });
 })();
 </script>
 <script>
@@ -1025,7 +1089,6 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     ".sc-login-gate",
     ".sc-story",
     ".sc-onboarding-lock",
-    ".splash",
     ".lobby",
     ".tutorial-select",
     ".tutorial-run",

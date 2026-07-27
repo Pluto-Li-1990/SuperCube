@@ -208,7 +208,6 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
             ".sc-login-gate",
             ".sc-story",
             ".sc-onboarding-lock",
-            ".splash",
             ".lobby",
             ".tutorial-select",
             ".tutorial-run",
