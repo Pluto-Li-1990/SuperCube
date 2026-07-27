@@ -1017,6 +1017,35 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   });
 })();
 </script>
+<script>
+(() => {
+  if (window.__superCubeNativeReadyProbeV2) return;
+  window.__superCubeNativeReadyProbeV2 = true;
+  const selectors = [
+    ".sc-login-gate",
+    ".sc-story",
+    ".sc-onboarding-lock",
+    ".splash",
+    ".lobby",
+    ".tutorial-select",
+    ".tutorial-run",
+    ".battle-wrap",
+    ".ob-status",
+    ".ws-wrap",
+    ".settings-wrap"
+  ].join(",");
+  let sent = false;
+  const notify = () => {
+    if (sent || !document.querySelector(selectors)) return;
+    sent = true;
+    window.__supercubeNativeReady?.("visible-ui");
+  };
+  notify();
+  const observer = new MutationObserver(notify);
+  observer.observe(document.body, { childList: true, subtree: true });
+  [150, 500, 1200, 2500, 5000].forEach((delay) => setTimeout(notify, delay));
+})();
+</script>
 <style>
 /* TestFlight polish: make the workshop readable on phone screens. */
 .tool-btn {
