@@ -13,6 +13,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
     private var renderCheckWorkItem: DispatchWorkItem?
     private var loadID = 0
     private var loadingLocalWeb = false
+    private var pageHasRendered = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,7 +24,9 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         configuration.websiteDataStore = .default()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         let userContentController = WKUserContentController()
+        userContentController.addUserScript(startupDiagnosticsScript())
         userContentController.add(self, name: "supercubeAuth")
+        userContentController.add(self, name: "supercubeReady")
         configuration.userContentController = userContentController
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
@@ -100,20 +103,16 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
 
     deinit {
         webView?.configuration.userContentController.removeScriptMessageHandler(forName: "supercubeAuth")
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "supercubeReady")
     }
 
     private func loadGame() {
         if let indexURL = bundledIndexURL() {
-            do {
-                let html = try String(contentsOf: indexURL, encoding: .utf8)
-                let webRootURL = indexURL.deletingLastPathComponent()
-                prepareForLoad(message: "正在加载本地 SuperCube...", loadingLocalWeb: true)
-                print("SuperCube loading local inline HTML: \(indexURL.absoluteString)")
-                webView.loadHTMLString(html, baseURL: webRootURL)
-                scheduleTimeout(seconds: 10)
-            } catch {
-                showMessage("SuperCube 本地资源读取失败\n\(error.localizedDescription)")
-            }
+            let webRootURL = indexURL.deletingLastPathComponent()
+            prepareForLoad(message: "正在加载本地 SuperCube...", loadingLocalWeb: true)
+            print("SuperCube loading local file HTML: \(indexURL.absoluteString)")
+            webView.loadFileURL(indexURL, allowingReadAccessTo: webRootURL)
+            scheduleTimeout(seconds: 10)
             return
         }
 
@@ -143,6 +142,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         hardTimeoutWorkItem?.cancel()
         renderCheckWorkItem?.cancel()
         self.loadingLocalWeb = loadingLocalWeb
+        pageHasRendered = false
         errorLabel.isHidden = true
         retryButton.isHidden = true
         statusLabel.text = message
@@ -174,10 +174,6 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         hardTimeoutWorkItem?.cancel()
-        if loadingLocalWeb {
-            loadingView.stopAnimating()
-            statusLabel.isHidden = true
-        }
         let currentLoadID = loadID
         let renderCheck = DispatchWorkItem { [weak self] in
             self?.checkRenderedPage(loadID: currentLoadID)
@@ -208,19 +204,37 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         guard loadID == currentLoadID else { return }
         let script = """
         (() => {
-          const app = document.getElementById('app');
-          return Boolean(app && app.childNodes && app.childNodes.length > 0);
+          const selectors = [
+            ".sc-login-gate",
+            ".sc-story",
+            ".sc-onboarding-lock",
+            ".splash",
+            ".lobby",
+            ".tutorial-select",
+            ".tutorial-run",
+            ".battle-wrap",
+            ".ob-status",
+            ".ws-wrap",
+            ".settings-wrap"
+          ];
+          return selectors.some((selector) => {
+            const element = document.querySelector(selector);
+            if (!element) return false;
+            const rect = element.getBoundingClientRect();
+            const style = window.getComputedStyle(element);
+            return rect.width > 0 &&
+              rect.height > 0 &&
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              style.opacity !== "0";
+          });
         })()
         """
         webView.evaluateJavaScript(script) { [weak self] result, _ in
             guard let self, self.loadID == currentLoadID else { return }
             let rendered = result as? Bool ?? false
             if rendered {
-                self.loadingView.stopAnimating()
-                self.statusLabel.isHidden = true
-                self.errorLabel.isHidden = true
-                self.retryButton.isHidden = true
-                print("SuperCube rendered: \(self.loadingLocalWeb ? "local" : "remote")")
+                self.markPageRendered(reason: "render-check")
                 return
             }
 
@@ -230,6 +244,18 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
                 self.showMessage("SuperCube 页面已加载，但没有渲染内容。\n请检查网络，或稍后点击重新加载。")
             }
         }
+    }
+
+    private func markPageRendered(reason: String) {
+        guard !pageHasRendered else { return }
+        pageHasRendered = true
+        hardTimeoutWorkItem?.cancel()
+        renderCheckWorkItem?.cancel()
+        loadingView.stopAnimating()
+        statusLabel.isHidden = true
+        errorLabel.isHidden = true
+        retryButton.isHidden = true
+        print("SuperCube rendered: \(loadingLocalWeb ? "local" : "remote") (\(reason))")
     }
 
     private func showMessage(_ message: String) {
@@ -246,12 +272,15 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
     }
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "supercubeReady" {
+            handlePageSignal(message.body)
+            return
+        }
+
         guard message.name == "supercubeAuth",
               let body = message.body as? [String: Any],
               let type = body["type"] as? String
-        else {
-            return
-        }
+        else { return }
 
         switch type {
         case "signInWithApple":
@@ -259,6 +288,67 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         default:
             break
         }
+    }
+
+    private func handlePageSignal(_ body: Any) {
+        guard let body = body as? [String: Any],
+              let type = body["type"] as? String
+        else { return }
+
+        switch type {
+        case "ready":
+            markPageRendered(reason: "page-signal")
+        case "error":
+            let message = (body["message"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let source = (body["source"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let line = body["line"] as? Int ?? 0
+            let detail = [message, source].compactMap { value in
+                guard let value, !value.isEmpty else { return nil }
+                return value
+            }.joined(separator: "\n")
+            let lineInfo = line > 0 ? "\nline: \(line)" : ""
+            print("SuperCube JS error before render: \(detail)\(lineInfo)")
+            if !pageHasRendered {
+                showMessage("SuperCube 页面脚本错误\n\(detail.isEmpty ? "未知错误" : detail)\(lineInfo)")
+            }
+        default:
+            break
+        }
+    }
+
+    private func startupDiagnosticsScript() -> WKUserScript {
+        let source = """
+        (function() {
+          if (window.__supercubeNativeDiagnosticsInstalled) return;
+          window.__supercubeNativeDiagnosticsInstalled = true;
+          function post(payload) {
+            try {
+              window.webkit.messageHandlers.supercubeReady.postMessage(payload);
+            } catch (error) {}
+          }
+          window.__supercubeNativeReady = function(label) {
+            post({ type: "ready", label: label || "" });
+          };
+          window.addEventListener("error", function(event) {
+            post({
+              type: "error",
+              message: event.message || String(event.error || "Script error"),
+              source: event.filename || "",
+              line: event.lineno || 0
+            });
+          });
+          window.addEventListener("unhandledrejection", function(event) {
+            var reason = event.reason;
+            post({
+              type: "error",
+              message: reason && (reason.message || String(reason)) || "Unhandled promise rejection",
+              source: "",
+              line: 0
+            });
+          });
+        })();
+        """
+        return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true)
     }
 
     private func startAppleSignIn() {
