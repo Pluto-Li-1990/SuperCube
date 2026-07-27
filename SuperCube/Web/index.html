@@ -171,7 +171,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     </div>
     <div class="mode-row battle-modes">
       <button class="mode-tile sel" id="m-pvp" data-mode="pvp"><span>⚔</span>对战(vs AI)</button>
-      <button class="mode-tile" id="m-online" data-mode="online"><span>🌐</span>在线对战</button>
+      <button class="mode-tile" id="m-online" data-mode="online"><span>🔗</span>在线对战</button>
       <button class="mode-tile" id="m-survival" data-mode="survival"><span>🛡️</span>生存竞技</button>
       <button class="mode-tile" id="m-timeattack" data-mode="time-attack"><span>⏱️</span>限时狂欢</button>
     </div>
@@ -182,9 +182,9 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     </div>
     <button class="play-btn" id="lobby-start"><span class="pb-icon">▶</span> 开始</button>
     <div class="tool-row">
-      <button class="tool-btn" id="m-workshop" title="源力工坊">⚒️</button>
-      <button class="tool-btn" id="m-tutorial" title="新手教程">📖</button>
-      <button class="tool-btn" id="m-settings" title="系统设置">⚙️</button>
+      <button class="tool-btn" id="m-workshop" title="源块锻造"><span class="tool-ico">✦</span><small>锻造</small></button>
+      <button class="tool-btn" id="m-tutorial" title="源界教程"><span class="tool-ico">📜</span><small>教程</small></button>
+      <button class="tool-btn" id="m-settings" title="系统设置"><span class="tool-ico">⚙</span><small>设置</small></button>
     </div>`,x.append(i);let t="pvp";const e=i.querySelector(".lobby-diff"),s=document.getElementById("lobby-start"),n=a=>{t=a,i.querySelectorAll(".battle-modes .mode-tile").forEach(o=>{o.classList.toggle("sel",o.dataset.mode===a)}),e.hidden=a==="online",s.innerHTML=a==="online"?'<span class="pb-icon">🌐</span> 开始匹配':'<span class="pb-icon">▶</span> 开始'};i.querySelectorAll(".battle-modes .mode-tile").forEach(a=>{a.onclick=()=>n(a.dataset.mode)}),s.onclick=()=>{t==="pvp"?_e("shared-turn"):t==="online"?Ue():et(t==="survival"?"survival":"time-attack")},document.getElementById("m-workshop").onclick=()=>qe(),document.getElementById("m-settings").onclick=()=>{L(),new we(x,I)},document.getElementById("m-tutorial").onclick=()=>{Bt()},i.querySelectorAll(".lobby-diff button").forEach(a=>{a.onclick=()=>{At=a.dataset.d,i.querySelectorAll(".lobby-diff button").forEach(o=>o.classList.remove("sel")),a.classList.add("sel")}})}function Bt(){L(),new De(x,{onBack:I,onStart:Ct})}function Ct(i){L(),H=new He(x,i,{onExit:Bt,onNext:Ct})}function _e(i){L(),new Ie(x,C,t=>{const{selfExtra:e,oppExtra:s}=Ae(C,t.choice);et(i,e,s)},I)}function Ue(){window.SuperCubeAccount?.ensure?.();const i="wss://match.supercubegame.com",t=window.SuperCubeAccount?.displayName?.()||"玩家";y.serverUrl=i,W(),L(),new Ne(x,{serverUrl:i,name:t,playerBag:C,onExit:I})}function et(i,t,e){L(),D=new Ee(x,{mode:i,difficulty:At,playerBag:t??C,aiBag:e,onExit:I})}function qe(){L();const i=document.createElement("button");i.className="ws-back",i.textContent="‹ 返回大厅",i.onclick=I,x.append(i);const t=document.createElement("div");x.append(t),O=new xe(t,()=>{C=O.getShelf()}),C.length&&(O.shelf=[...C],O.renderShelf?.())}me();new We(x,()=>{I(),Fe()||new St(()=>{})});
 
 </script>
@@ -323,6 +323,22 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     this.tone(740, 0.045, { type: "triangle", gain: 0.09, slideTo: 980, filter: 4800 });
   };
 
+  f.uiSelect = function uiSelect() {
+    this.tone(520, 0.055, { type: "triangle", gain: 0.085, slideTo: 650, filter: 2600 });
+    this.tone(780, 0.05, { type: "sine", gain: 0.035, delay: 0.025, slideTo: 700, filter: 3200 });
+  };
+
+  f.uiEnter = function uiEnter() {
+    this.tone(330, 0.09, { type: "triangle", gain: 0.09, slideTo: 392, filter: 1600 });
+    this.tone(660, 0.12, { type: "sine", gain: 0.055, delay: 0.045, slideTo: 880, filter: 3400 });
+  };
+
+  f.uiForge = function uiForge() {
+    this.noise(0.055, { gain: 0.08, filter: 1200, q: 0.9 });
+    this.tone(220, 0.08, { type: "triangle", gain: 0.13, filter: 700 });
+    this.tone(880, 0.16, { type: "sine", gain: 0.06, delay: 0.055, slideTo: 1175, filter: 4200 });
+  };
+
   f.move = function move() {
     this.tone(185, 0.045, { type: "square", gain: 0.12, slideTo: 228, filter: 1800 });
   };
@@ -414,13 +430,48 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     if (y.bgm) f.startBgm();
   };
 
+  const haptic = (duration = 8) => {
+    try {
+      if (navigator.vibrate) navigator.vibrate(duration);
+    } catch {}
+  };
+
+  const playUiFeedback = (button) => {
+    if (!button || button.classList.contains("ctrl-btn")) return;
+    const inShell = button.closest(".lobby, .ws-wrap, .ws-back, .settings-wrap, .tutorial-select, .tut-overlay, .sc-login-gate, .sc-account-modal, .sc-story, .ob-status, .result-overlay");
+    if (!inShell) {
+      f.tap();
+      return;
+    }
+    if (button.matches(".ws-btn.primary")) {
+      haptic(14);
+      f.uiForge?.();
+      return;
+    }
+    if (button.id === "lobby-start" || button.classList.contains("play-btn") || button.dataset?.action === "enter" || button.dataset?.action === "guest" || button.dataset?.action === "apple") {
+      haptic(18);
+      f.uiEnter?.();
+      return;
+    }
+    haptic(8);
+    f.uiSelect?.();
+  };
+
   document.addEventListener("touchstart", unlock, { passive: true });
   document.addEventListener("pointerdown", unlock, { passive: true });
   document.addEventListener("keydown", unlock, { passive: true });
   document.addEventListener("click", (event) => {
     unlock();
     const button = event.target && event.target.closest ? event.target.closest("button") : null;
-    if (button && !button.classList.contains("ctrl-btn")) f.tap();
+    playUiFeedback(button);
+  }, true);
+
+  document.addEventListener("pointerdown", (event) => {
+    const canvas = event.target && event.target.closest ? event.target.closest(".ws-canvas") : null;
+    if (!canvas) return;
+    unlock();
+    haptic(7);
+    f.uiSelect?.();
   }, true);
 
   document.addEventListener("visibilitychange", () => {
@@ -712,7 +763,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         </div>
         <div class="sc-login-panel" role="dialog" aria-modal="true" aria-label="登录 SuperCube">
           <h2>选择你的身份</h2>
-          <p>登录后进入大厅。Apple 登录适合长期保存战绩；游客身份可以马上开始，之后也能再绑定。</p>
+          <p>登录后进入源界中枢。Apple 登录适合长期保存战绩；游客身份可以马上开始，之后也能再绑定。</p>
           <div class="sc-login-actions">
             <button class="primary" data-action="apple">使用 Apple 登录</button>
             <button data-action="guest">游客开始</button>
@@ -844,7 +895,30 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 .tool-btn {
   min-width: 64px;
   min-height: 64px;
-  font-size: 30px;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.tool-btn .tool-ico {
+  font-size: 25px;
+}
+
+.tool-btn small {
+  color: #cdd8ec;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.tool-btn:active,
+.ws-btn:active,
+.ws-swatch:active,
+.mode-tile:active,
+.set-switch:active,
+.set-seg button:active {
+  filter: brightness(1.14);
 }
 
 .ws-swatch {
@@ -1409,6 +1483,88 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   installGentleBgm();
   patchWeatherRules();
   installTurnFeedback();
+})();
+</script>
+<script>
+(function sourceRealmNamingPatch() {
+  if (window.__superCubeRealmNamingV1) return;
+  window.__superCubeRealmNamingV1 = true;
+
+  function setButtonText(selector, text) {
+    document.querySelectorAll(selector).forEach((node) => {
+      if (node.textContent !== text) node.textContent = text;
+    });
+  }
+
+  function setTool(id, html, title) {
+    const button = document.getElementById(id);
+    if (!button) return;
+    if (button.dataset.realmTool !== id) {
+      button.innerHTML = html;
+      button.dataset.realmTool = id;
+    }
+    button.title = title;
+    button.setAttribute("aria-label", title);
+  }
+
+  function replaceContent(selector, from, to) {
+    document.querySelectorAll(selector).forEach((node) => {
+      if (node.textContent.includes(from)) node.textContent = node.textContent.replaceAll(from, to);
+    });
+  }
+
+  function refreshRealmCopy() {
+    setButtonText("#set-back, #b-exit, #ob-back, #ts-back", "‹ 中枢");
+    setButtonText("#r-exit, #ob-r-exit", "返回源界中枢");
+    setButtonText(".ws-back", "‹ 返回中枢");
+    setTool("m-workshop", '<span class="tool-ico">✦</span><small>锻造</small>', "源块锻造");
+    setTool("m-tutorial", '<span class="tool-ico">📜</span><small>教程</small>', "源界教程");
+    setTool("m-settings", '<span class="tool-ico">⚙</span><small>设置</small>', "系统设置");
+
+    replaceContent(".ws-left h2, .tut-body, .tut-title", "源力工坊", "源块锻造");
+    replaceContent(".ws-right h3, #ws-shelf-title", "元素调色盘", "源力调色盘");
+    replaceContent(".ws-right h3, #ws-shelf-title", "陈列滚轴", "源块陈列");
+    replaceContent(".ws-status", "放置方块开始设计", "摆放源块开始锻造");
+    replaceContent(".ws-status", "合法棋子", "合法源块");
+    replaceContent(".ws-shelf-empty", "已入库的棋子会显示在这里，并自动保存到本机。", "已锻造的源块会显示在这里，并自动保存到本机。");
+    replaceContent(".ws-shelf-meta span", "源力#", "源块#");
+    replaceContent(".sc-login-panel p", "登录后进入大厅。", "登录后进入源界中枢。");
+  }
+
+  function wrapWorkshopCopy() {
+    if (typeof xe === "undefined" || xe.prototype.__realmNamingWrapped) return;
+    for (const method of ["build", "updateStatus", "renderShelf", "cast"]) {
+      const original = xe.prototype[method];
+      if (typeof original !== "function") continue;
+      xe.prototype[method] = function realmNamedWorkshopMethod(...args) {
+        const output = original.apply(this, args);
+        refreshRealmCopy();
+        return output;
+      };
+    }
+    xe.prototype.__realmNamingWrapped = true;
+  }
+
+  try {
+    const originalAlert = window.alert;
+    window.alert = function realmNamedAlert(message) {
+      if (typeof message === "string") {
+        message = message
+          .replaceAll("陈列滚轴", "源块陈列")
+          .replaceAll("棋子", "源块")
+          .replaceAll("铸造", "锻造");
+      }
+      return originalAlert.call(window, message);
+    };
+  } catch {}
+
+  wrapWorkshopCopy();
+  refreshRealmCopy();
+  const app = document.getElementById("app") || document.body;
+  new MutationObserver(() => {
+    wrapWorkshopCopy();
+    refreshRealmCopy();
+  }).observe(app, { childList: true, subtree: true });
 })();
 </script>
 </body>
