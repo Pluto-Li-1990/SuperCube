@@ -163,8 +163,46 @@ describe("SuperCube netcode server", () => {
     expect(new Set([matchA.you, matchB.you])).toEqual(new Set(["A", "B"]));
     expect(matchA.opponent).toEqual({ name: "Bob" });
     expect(matchB.opponent).toEqual({ name: "Alice" });
+    expect(matchA.gameMode).toBe("assault");
+    expect(matchB.gameMode).toBe("assault");
     expect(matchA.bags).toEqual({ A: testBagA, B: testBagB });
     expect(matchB.bags).toEqual({ A: testBagA, B: testBagB });
+  });
+
+  it("matches only players queued for the same online mode", async () => {
+    const survivalA = await newClient();
+    const assault = await newClient();
+    const survivalB = await newClient();
+
+    survivalA.send({ type: "queue", name: "Survival A", gameMode: "survival" });
+    await expect(survivalA.waitFor((message) => message.type === "queued")).resolves.toMatchObject({
+      type: "queued",
+      gameMode: "survival"
+    });
+
+    assault.send({ type: "queue", name: "Assault", gameMode: "assault" });
+    await expect(assault.waitFor((message) => message.type === "queued")).resolves.toMatchObject({
+      type: "queued",
+      gameMode: "assault"
+    });
+
+    survivalB.send({ type: "queue", name: "Survival B", gameMode: "survival" });
+    await expect(survivalB.waitFor((message) => message.type === "queued")).resolves.toMatchObject({
+      type: "queued",
+      gameMode: "survival"
+    });
+
+    const { matchA, matchB } = await waitForMatch(survivalA, survivalB);
+    expect(matchA.gameMode).toBe("survival");
+    expect(matchB.gameMode).toBe("survival");
+    expect(matchA.opponent).toEqual({ name: "Survival B" });
+    expect(matchB.opponent).toEqual({ name: "Survival A" });
+
+    assault.send({ type: "ping", t: 789 });
+    await expect(assault.waitFor((message) => message.type === "pong")).resolves.toEqual({
+      type: "pong",
+      t: 789
+    });
   });
 
   it("serves health status for ECS and reverse proxy checks", async () => {
@@ -295,6 +333,75 @@ describe("SuperCube netcode server", () => {
     )) as Extract<ServerMessage, { type: "turn" }>;
     expect(forwarded.move).toEqual(move);
     expect(Object.keys(forwarded.move).sort()).toEqual(["hardDrop", "px", "rotation"]);
+  });
+
+  it("allows independent progress and finish reports in race modes", async () => {
+    const a = await newClient();
+    const b = await newClient();
+    a.send({ type: "queue", name: "Alice", gameMode: "frenzy" });
+    b.send({ type: "queue", name: "Bob", gameMode: "frenzy" });
+    const { matchA } = await waitForMatch(a, b);
+
+    const moveA: MoveDTO = { rotation: 0, px: 4, hardDrop: true, score: 5, linesCleared: 1 };
+    const moveB: MoveDTO = { rotation: 1, px: 3, hardDrop: true, score: 2, gameOver: false };
+
+    a.send({ type: "turn", matchId: matchA.matchId, turnIndex: 0, move: moveA });
+    await expect(a.waitFor((message) => message.type === "turn")).resolves.toMatchObject({
+      type: "turn",
+      matchId: matchA.matchId,
+      turnIndex: 0,
+      by: "A",
+      move: moveA
+    });
+    await expect(b.waitFor((message) => message.type === "turn")).resolves.toMatchObject({
+      type: "turn",
+      matchId: matchA.matchId,
+      turnIndex: 0,
+      by: "A",
+      move: moveA
+    });
+
+    b.send({ type: "turn", matchId: matchA.matchId, turnIndex: 0, move: moveB });
+    await expect(a.waitFor((message) => message.type === "turn")).resolves.toMatchObject({
+      type: "turn",
+      matchId: matchA.matchId,
+      turnIndex: 0,
+      by: "B",
+      move: moveB
+    });
+    await expect(b.waitFor((message) => message.type === "turn")).resolves.toMatchObject({
+      type: "turn",
+      matchId: matchA.matchId,
+      turnIndex: 0,
+      by: "B",
+      move: moveB
+    });
+
+    b.send({ type: "turn", matchId: matchA.matchId, turnIndex: 0, move: moveB });
+    await expect(b.waitFor((message) => message.type === "error")).resolves.toMatchObject({
+      type: "error",
+      code: "OUT_OF_ORDER"
+    });
+
+    a.send({ type: "finish", matchId: matchA.matchId, score: 12 });
+    await expect(
+      b.waitFor((message) => message.type === "finish" && message.by === "A")
+    ).resolves.toMatchObject({
+      type: "finish",
+      matchId: matchA.matchId,
+      by: "A",
+      score: 12
+    });
+
+    b.send({ type: "finish", matchId: matchA.matchId, score: 9 });
+    await expect(
+      a.waitFor((message) => message.type === "finish" && message.by === "B")
+    ).resolves.toMatchObject({
+      type: "finish",
+      matchId: matchA.matchId,
+      by: "B",
+      score: 9
+    });
   });
 
   it("notifies the opponent when a player disconnects", async () => {

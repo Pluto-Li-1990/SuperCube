@@ -43,13 +43,15 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         loadingView.translatesAutoresizingMaskIntoConstraints = false
         loadingView.color = .white
         loadingView.startAnimating()
+        loadingView.isHidden = true
         view.addSubview(loadingView)
 
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        statusLabel.text = "正在加载 SuperCube..."
+        statusLabel.text = ""
         statusLabel.textColor = UIColor.white.withAlphaComponent(0.8)
         statusLabel.font = .systemFont(ofSize: 14, weight: .medium)
         statusLabel.textAlignment = .center
+        statusLabel.isHidden = true
         view.addSubview(statusLabel)
 
         errorLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -109,7 +111,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
     private func loadGame() {
         if let indexURL = bundledIndexURL() {
             let webRootURL = indexURL.deletingLastPathComponent()
-            prepareForLoad(message: "正在加载本地 SuperCube...", loadingLocalWeb: true)
+            prepareForLoad(message: nil, loadingLocalWeb: true)
             print("SuperCube loading local file HTML: \(indexURL.absoluteString)")
             webView.loadFileURL(indexURL, allowingReadAccessTo: webRootURL)
             scheduleTimeout(seconds: 10)
@@ -137,7 +139,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         scheduleTimeout(seconds: 15)
     }
 
-    private func prepareForLoad(message: String, loadingLocalWeb: Bool) {
+    private func prepareForLoad(message: String?, loadingLocalWeb: Bool) {
         loadID += 1
         hardTimeoutWorkItem?.cancel()
         renderCheckWorkItem?.cancel()
@@ -145,9 +147,19 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         pageHasRendered = false
         errorLabel.isHidden = true
         retryButton.isHidden = true
-        statusLabel.text = message
-        statusLabel.isHidden = false
-        loadingView.startAnimating()
+        if let message, !message.isEmpty {
+            statusLabel.text = message
+            statusLabel.isHidden = false
+        } else {
+            statusLabel.text = ""
+            statusLabel.isHidden = true
+        }
+        loadingView.isHidden = loadingLocalWeb
+        if loadingLocalWeb {
+            loadingView.stopAnimating()
+        } else {
+            loadingView.startAnimating()
+        }
     }
 
     private func scheduleTimeout(seconds: TimeInterval) {
@@ -269,6 +281,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
         hardTimeoutWorkItem?.cancel()
         renderCheckWorkItem?.cancel()
         loadingView.stopAnimating()
+        loadingView.isHidden = true
         statusLabel.isHidden = true
         errorLabel.isHidden = true
         retryButton.isHidden = true
@@ -277,6 +290,7 @@ final class SuperCubeViewController: UIViewController, WKNavigationDelegate, WKS
 
     private func showMessage(_ message: String) {
         loadingView.stopAnimating()
+        loadingView.isHidden = true
         statusLabel.isHidden = true
         errorLabel.text = message
         errorLabel.isHidden = false
