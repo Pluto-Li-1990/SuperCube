@@ -2498,7 +2498,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     if (mode === "assault") return Ue();
     showNotice(
       "联网规则升级中",
-      "生存竞技和限时狂欢需要服务器支持双方独立棋盘、结束上报与赛果延迟结算。现在先保留入口和规则说明，避免把可用的真人攻防匹配弄坏。"
+      "这个玩法已经归入源界战场，但真人版需要服务器支持双方独立棋盘、结束上报与赛果延迟结算。现在先保留入口和规则说明，避免把可用的真人攻防匹配弄坏。"
     );
   }
 
@@ -2583,6 +2583,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     const start = document.getElementById("lobby-start");
     const panelTitle = document.getElementById("realm-panel-title");
     const panelSub = document.getElementById("realm-panel-sub");
+    const modeGrid = wrap.querySelector(".realm-mode-grid");
     const desc = document.getElementById("realm-mode-desc");
 
     const renderSelection = () => {
@@ -2590,14 +2591,15 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         button.classList.toggle("sel", button.dataset.zone === selectedZone);
       });
       wrap.querySelectorAll(".realm-mode-card").forEach((button) => {
-        const disabled = selectedZone === "rift" || (selectedZone === "battlefield" && button.dataset.mode !== "assault");
+        const disabled = selectedZone === "rift";
         button.classList.toggle("sel", button.dataset.mode === selectedMode);
         button.setAttribute("aria-disabled", String(disabled));
       });
       const zone = zones[selectedZone];
       const mode = modes[selectedMode];
       panelTitle.textContent = zone.title;
-      panelSub.textContent = selectedZone === "rift" ? "规则池筹备中" : "选择作战规则";
+      panelSub.textContent = selectedZone === "rift" ? "乱斗规则池" : "选择作战规则";
+      modeGrid.hidden = selectedZone === "rift";
       desc.textContent = selectedZone === "rift" ? zone.detail : `${mode.detail} ${zone.detail}`;
       diff.hidden = selectedZone !== "training";
       start.innerHTML = selectedZone === "battlefield"
