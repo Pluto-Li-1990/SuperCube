@@ -1009,6 +1009,10 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     document.body.appendChild(panel);
   }
 
+  function setTextIfChanged(node, text) {
+    if (node && node.textContent !== text) node.textContent = text;
+  }
+
   function renderProfile() {
     const profile = document.querySelector(".lt-profile");
     if (!profile) return;
@@ -1016,12 +1020,15 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     const avatar = profile.querySelector(".lt-avatar");
     const title = profile.querySelector(".lt-name, strong");
     const subtitle = profile.querySelector(".lt-rank, span");
-    if (avatar) avatar.textContent = account?.provider === "apple" ? "" : "🧑";
-    if (title) title.textContent = cleanName(account?.displayName, "玩家");
-    if (subtitle) subtitle.textContent = accountLabel(account);
+    setTextIfChanged(avatar, account?.provider === "apple" ? "" : "🧑");
+    setTextIfChanged(title, cleanName(account?.displayName, "玩家"));
+    setTextIfChanged(subtitle, accountLabel(account));
     profile.setAttribute("role", "button");
     profile.setAttribute("aria-label", "账号");
-    profile.onclick = showPanel;
+    if (profile.dataset.accountClickBound !== "1") {
+      profile.addEventListener("click", showPanel);
+      profile.dataset.accountClickBound = "1";
+    }
   }
 
   window.SuperCubeAccount = {
@@ -1075,9 +1082,15 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     }
   };
 
+  let observerQueued = false;
   const observer = new MutationObserver(() => {
-    renderProfile();
-    enforceOnboardingTutorial();
+    if (observerQueued) return;
+    observerQueued = true;
+    requestAnimationFrame(() => {
+      observerQueued = false;
+      renderProfile();
+      enforceOnboardingTutorial();
+    });
   });
   observer.observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
   renderProfile();
