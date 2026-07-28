@@ -2239,28 +2239,50 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 .realm-zone-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 9px;
+  gap: 10px;
 }
 
 .realm-zone-card {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 8px 12px;
+  gap: 8px 13px;
   align-items: center;
   width: 100%;
-  padding: 13px 14px;
+  padding: 15px 15px 14px;
   border: 1px solid rgba(255,255,255,.08);
-  border-radius: 16px;
+  border-radius: 18px;
   color: var(--text);
-  background: rgba(28,33,48,.64);
+  background: linear-gradient(135deg, rgba(28,33,48,.72), rgba(14,18,29,.82));
   text-align: left;
-  box-shadow: 0 10px 22px rgba(0,0,0,.18);
+  box-shadow: 0 12px 26px rgba(0,0,0,.2);
+  min-height: 94px;
+}
+
+.realm-zone-card::before {
+  content: "";
+  position: absolute;
+  inset: auto -18% -62% 20%;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(90,168,255,.18);
+  filter: blur(24px);
+  opacity: .66;
+}
+
+.realm-zone-card[data-zone="training"]::before { background: rgba(255,210,95,.2); }
+.realm-zone-card[data-zone="battlefield"]::before { background: rgba(87,210,255,.24); }
+.realm-zone-card[data-zone="rift"]::before { background: rgba(199,125,255,.22); }
+
+.realm-zone-card > * {
+  position: relative;
 }
 
 .realm-zone-card.sel {
-  border-color: rgba(90,168,255,.72);
-  background: linear-gradient(135deg, rgba(36,79,132,.72), rgba(56,32,94,.68));
-  box-shadow: 0 0 24px rgba(54,163,255,.24);
+  border-color: rgba(119,201,255,.82);
+  background: linear-gradient(135deg, rgba(32,73,116,.84), rgba(30,37,62,.86));
+  box-shadow: 0 0 0 1px rgba(119,201,255,.12), 0 16px 34px rgba(54,163,255,.22);
 }
 
 .realm-zone-icon {
@@ -2273,10 +2295,11 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   justify-content: center;
   font-size: 24px;
   background: rgba(255,255,255,.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
 }
 
 .realm-zone-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 950;
   line-height: 1.18;
 }
@@ -2285,6 +2308,17 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   color: rgba(230,235,242,.64);
   font-size: 12px;
   line-height: 1.4;
+}
+
+.realm-zone-kicker {
+  grid-column: 2;
+  justify-self: start;
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: rgba(235,246,255,.82);
+  background: rgba(255,255,255,.08);
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .realm-mode-panel {
@@ -2321,7 +2355,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 
 .realm-mode-card {
   min-height: 82px;
-  padding: 9px 8px;
+  padding: 10px 8px;
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 14px;
   display: flex;
@@ -2331,6 +2365,18 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   color: var(--text);
   background: rgba(28,33,48,.7);
   text-align: left;
+}
+
+.realm-mode-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  margin-bottom: 2px;
+  background: rgba(255,255,255,.08);
+  font-size: 17px;
 }
 
 .realm-mode-card.sel {
@@ -2406,18 +2452,61 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   background: linear-gradient(135deg, #ffd45d, #62c3ff);
 }
 
+.race-wrap .mode-badge {
+  min-width: 92px;
+  text-align: center;
+}
+
+.race-status-strip {
+  margin: 2px auto 8px;
+  width: min(360px, 100%);
+  border-radius: 16px;
+  padding: 10px 12px;
+  text-align: center;
+  color: rgba(235,246,255,.82);
+  background: rgba(90,168,255,.1);
+  border: 1px solid rgba(90,168,255,.16);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.race-status-strip.done {
+  color: #ffe5a0;
+  background: rgba(255,210,95,.11);
+  border-color: rgba(255,210,95,.2);
+}
+
+.race-wrap .ppanel.done {
+  opacity: .76;
+  border-color: rgba(255,210,95,.38);
+}
+
+.race-wrap .ppanel .pstatus {
+  margin-top: 4px;
+  color: rgba(230,235,242,.58);
+  font-size: 11px;
+}
+
+.race-wrap .ppanel.active {
+  border-color: rgba(119,201,255,.5);
+}
+
 @media (min-width: 560px) {
   .realm-zone-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 
   .realm-zone-card {
-    min-height: 118px;
+    min-height: 132px;
     grid-template-columns: 1fr;
   }
 
   .realm-zone-icon {
     grid-row: auto;
+  }
+
+  .realm-zone-kicker {
+    grid-column: auto;
   }
 }
 </style>
@@ -2438,7 +2527,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       icon: "◇",
       title: "源界战场",
       sub: "在线匹配 · 真人对战",
-      detail: "连接源界战场，与真人匹配。当前先开放攻防战争，生存与限时需要下一版联网协议支持双方独立棋盘。",
+      detail: "连接源界战场，与真人匹配。攻防战争共用棋盘；生存竞技与限时狂欢使用双方独立棋盘，结束后按积分判定。",
       action: "开始匹配"
     },
     rift: {
@@ -2452,16 +2541,19 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 
   const modes = {
     assault: {
+      icon: "⚔",
       title: "攻防战争",
       short: "一人一次落子，抢分与截胡",
       detail: "标准战。双方共用同一块源界棋盘，轮流落子；消除整行才计分，触顶则结束。"
     },
     survival: {
+      icon: "🛡",
       title: "生存竞技",
       short: "各自坚持到封顶，最后比分判定",
-      detail: "目标规则：双方各自一盘，直到都封顶后比较积分。当前大师训练室先作为耐久训练开放。"
+      detail: "双方各自一盘，节奏独立推进。两边都封顶后比较积分，先结束的一方会等待对手结算。"
     },
     frenzy: {
+      icon: "⏱",
       title: "限时狂欢",
       short: "3 分钟冲分，封顶不死",
       detail: "3 分钟内尽量拿高分。顶部堵住时会清掉底部 4 行继续冲分，不因封顶立刻死亡。"
@@ -2488,6 +2580,425 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     document.body.append(overlay);
   }
 
+  if (typeof Pe !== "undefined" && !Pe.prototype.__realmRaceProtocol) {
+    const originalOnMessage = Pe.prototype.onMessage;
+    Pe.prototype.onMessage = function realmRaceOnMessage(text) {
+      let message;
+      try { message = JSON.parse(text); } catch { return originalOnMessage.call(this, text); }
+      if (message.type === "finish") return this.handlers.finish?.(message);
+      if (message.type === "queued") return this.handlers.queued?.(message);
+      return originalOnMessage.call(this, text);
+    };
+    Pe.prototype.queueMode = function queueMode(name, bag, gameMode) {
+      const token = window.SuperCubeAccount?.token?.();
+      this.send({ type: "queue", name, bag, gameMode, accountToken: token || void 0 });
+    };
+    Pe.prototype.finish = function finish(matchId, score) {
+      this.send({ type: "finish", matchId, score });
+    };
+    Pe.prototype.__realmRaceProtocol = true;
+  }
+
+  class RealmOnlineRace {
+    constructor(root, opts) {
+      this.root = root;
+      this.opts = opts;
+      this.client = null;
+      this.game = null;
+      this.mySide = "A";
+      this.matchId = "";
+      this.canvas = null;
+      this.ctx = null;
+      this.cell = 28;
+      this.raf = 0;
+      this.rotations = 0;
+      this.localTurn = 0;
+      this.fallTimer = null;
+      this.matchTimer = null;
+      this.timeLeft = opts.gameMode === "frenzy" ? 180 : 0;
+      this.lockPending = false;
+      this.localFinished = false;
+      this.oppFinished = false;
+      this.resultShown = false;
+      this.oppName = "对手";
+      this.oppScore = 0;
+      this.statusText = "正在连接源界战场…";
+      this.flashes = [];
+      this.touch = { active: false, sx: 0, sy: 0, lx: 0, ly: 0, startPx: 0, lock: "" };
+      this.keyHandler = null;
+      this.loop = () => {
+        if (this.game) this.render();
+        this.raf = requestAnimationFrame(this.loop);
+      };
+
+      this.showStatus(this.statusText);
+      this.client = new Pe(opts.serverUrl);
+      this.client.on("open", () => {
+        this.showStatus(`匹配中…（${modes[this.opts.gameMode].title}）`);
+        this.client.queueMode(opts.name, opts.playerBag.map(Re), opts.gameMode);
+      });
+      this.client.on("error", (code, message) => this.showStatus(`连接失败：${message || code}。请检查网络后重试。`, true));
+      this.client.on("close", () => {
+        if (!this.game) this.showStatus("连接已断开。", true);
+      });
+      this.client.on("matchFound", (match) => this.onMatchFound(match));
+      this.client.on("turn", (turn) => this.onRemoteTurn(turn));
+      this.client.on("finish", (finish) => this.onFinish(finish));
+      this.client.on("opponentLeft", () => this.endMatch("对手已离开，你获胜！"));
+    }
+
+    engineMode() {
+      return this.opts.gameMode === "frenzy" ? "time-attack" : "survival";
+    }
+
+    showStatus(message, error = false) {
+      this.root.innerHTML = `
+        <div class="ob-status">
+          <button class="btn-exit" id="or-back">‹ 中枢</button>
+          <div class="ob-spinner ${error ? "err" : ""}"></div>
+          <p>${message}</p>
+        </div>`;
+      document.getElementById("or-back").onclick = () => this.quit();
+    }
+
+    onMatchFound(match) {
+      this.mySide = match.you;
+      this.matchId = match.matchId;
+      this.oppName = match.opponent.name;
+      const sideSeed = (match.seed + (this.mySide === "A" ? 101 : 202)) >>> 0;
+      this.game = new U({
+        seed: sideSeed,
+        mode: this.engineMode(),
+        customBagA: this.opts.playerBag
+      });
+      this.buildBoard();
+      this.loop();
+      this.fallTimer = setInterval(() => this.fallTick(), y.fallMs);
+      if (this.opts.gameMode === "frenzy") this.startTimer();
+      f.syncBgm();
+    }
+
+    startTimer() {
+      this.updateTimerUI();
+      this.matchTimer = setInterval(() => {
+        if (this.resultShown || this.localFinished) return;
+        this.timeLeft = Math.max(0, this.timeLeft - 1);
+        this.updateTimerUI();
+        if (this.timeLeft <= 0) {
+          if (this.matchTimer) clearInterval(this.matchTimer);
+          this.statusText = "时间到，等待对手结算…";
+          this.finishMine();
+        }
+      }, 1000);
+    }
+
+    updateTimerUI() {
+      const badge = document.getElementById("or-mode");
+      if (badge && this.opts.gameMode === "frenzy") badge.textContent = `⏱ ${this.timeLeft}s`;
+    }
+
+    buildBoard() {
+      const label = modes[this.opts.gameMode].title;
+      this.root.innerHTML = `
+        <div class="battle-wrap race-wrap">
+          <div class="battle-top">
+            <button class="btn-exit" id="or-exit">‹ 离开</button>
+            <div class="weather-station" id="or-weather"></div>
+            <div class="mode-badge" id="or-mode">${label}</div>
+          </div>
+          <div class="players-row">
+            <div class="ppanel active" id="or-me"></div>
+            <div class="ppanel side-B" id="or-opp"></div>
+          </div>
+          <div class="race-status-strip" id="or-status">双方独立作战 · 实时同步积分</div>
+          <div class="battle-mid"><div class="board-col"><canvas id="or-canvas"></canvas></div></div>
+          <div class="gesture-hint">拖动移动 · 轻点旋转 · 下滑落子</div>
+          <div class="battle-ctrl">
+            <button class="ctrl-btn" data-act="left">◀</button>
+            <button class="ctrl-btn" data-act="rotate">⟳</button>
+            <button class="ctrl-btn" data-act="right">▶</button>
+            <button class="ctrl-btn drop" data-act="drop">落子 ⤓</button>
+          </div>
+        </div>`;
+      document.getElementById("or-exit").onclick = () => this.quit();
+      this.canvas = document.getElementById("or-canvas");
+      const width = this.game.grid.w * this.cell;
+      const height = this.game.grid.h * this.cell;
+      const scale = Math.min(window.devicePixelRatio || 1, 3);
+      this.canvas.width = Math.round(width * scale);
+      this.canvas.height = Math.round(height * scale);
+      this.canvas.style.width = width + "px";
+      this.canvas.style.height = height + "px";
+      this.ctx = this.canvas.getContext("2d");
+      this.ctx.scale(scale, scale);
+      this.bindInput();
+      this.root.querySelectorAll(".ctrl-btn").forEach((button) => {
+        button.onclick = () => this.act(button.dataset.act);
+      });
+    }
+
+    canDrive() {
+      return !!this.game && !this.localFinished && !this.game.gameOver && !!this.game.active;
+    }
+
+    bindInput() {
+      const canvas = this.canvas;
+      canvas.addEventListener("touchstart", (event) => {
+        f.resume();
+        this.tStart(event);
+      }, { passive: false });
+      canvas.addEventListener("touchmove", (event) => this.tMove(event), { passive: false });
+      canvas.addEventListener("touchend", (event) => this.tEnd(event), { passive: false });
+      this.keyHandler = (event) => {
+        if (!this.canDrive()) return;
+        const action = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "rotate", ArrowDown: "down", " ": "drop" }[event.key];
+        if (!action) return;
+        event.preventDefault();
+        this.act(action);
+      };
+      window.addEventListener("keydown", this.keyHandler);
+    }
+
+    tStart(event) {
+      if (!this.canDrive()) return;
+      const touch = event.touches[0];
+      this.touch = { active: true, sx: touch.clientX, sy: touch.clientY, lx: touch.clientX, ly: touch.clientY, startPx: this.game.active.px, lock: "" };
+    }
+
+    tMove(event) {
+      if (!this.touch.active || !this.canDrive()) return;
+      event.preventDefault();
+      const touch = event.touches[0];
+      this.touch.lx = touch.clientX;
+      this.touch.ly = touch.clientY;
+      const dx = touch.clientX - this.touch.sx;
+      const dy = touch.clientY - this.touch.sy;
+      if (!this.touch.lock && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        this.touch.lock = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+      }
+      if (this.touch.lock === "h") {
+        const rect = this.canvas.getBoundingClientRect();
+        const target = this.touch.startPx + Math.round(dx / (rect.width / this.game.grid.w));
+        while (this.game.active.px < target && this.game.move(1));
+        while (this.game.active.px > target && this.game.move(-1));
+      }
+    }
+
+    tEnd() {
+      if (!this.touch.active) return;
+      this.touch.active = false;
+      if (!this.canDrive()) return;
+      const dx = this.touch.lx - this.touch.sx;
+      const dy = this.touch.ly - this.touch.sy;
+      if (this.touch.lock === "v" && dy > 0 && Math.abs(dy) > Math.abs(dx)) {
+        this.commitMine();
+      } else if (!this.touch.lock && this.game.rotate()) {
+        this.rotations += 1;
+        f.rotate();
+      }
+    }
+
+    act(action) {
+      if (!this.canDrive()) return;
+      f.resume();
+      if (action === "left") this.game.move(-1) && f.move();
+      else if (action === "right") this.game.move(1) && f.move();
+      else if (action === "rotate") this.game.rotate() && (this.rotations += 1, f.rotate());
+      else if (action === "down") this.game.step();
+      else if (action === "drop") this.commitMine();
+    }
+
+    fallTick() {
+      if (!this.canDrive()) return;
+      this.game.step() ? this.lockPending = false : this.lockPending ? this.commitMine() : this.lockPending = true;
+    }
+
+    snapElements() {
+      return this.game.grid.cells.map((row) => row.map((cell) => cell.element));
+    }
+
+    addFlashes(before) {
+      const after = this.snapElements();
+      const now = performance.now();
+      for (let y0 = 0; y0 < after.length; y0++)
+        for (let x0 = 0; x0 < after[y0].length; x0++)
+          if (before[y0]?.[x0] !== after[y0][x0])
+            this.flashes.push({ x: x0, y: y0, t: now, destroy: after[y0][x0] === r.Empty });
+    }
+
+    commitMine() {
+      if (!this.canDrive()) return;
+      const active = this.game.active;
+      const move = { rotation: this.rotations % 4, px: active.px, hardDrop: true };
+      const before = this.snapElements();
+      const res = this.game.commitTurn();
+      this.addFlashes(before);
+      this.rotations = 0;
+      this.lockPending = false;
+      try {
+        f.lock();
+        if (res.events?.some((event) => event.type !== "weather")) f.reaction?.();
+        if (res.linesCleared > 0) f.clear?.(res.linesCleared);
+        if (res.ancientLife) f.ancient?.();
+      } catch {}
+      this.client.sendTurn(this.matchId, this.localTurn, {
+        ...move,
+        score: this.myScore(),
+        gameOver: this.game.gameOver,
+        linesCleared: res.linesCleared
+      });
+      this.localTurn += 1;
+      if (this.game.gameOver) {
+        this.statusText = "你已封顶，等待对手结算…";
+        this.finishMine();
+      }
+    }
+
+    myScore() {
+      return this.game?.players.A.score ?? 0;
+    }
+
+    finishMine() {
+      if (this.localFinished) return;
+      this.localFinished = true;
+      if (this.matchTimer) clearInterval(this.matchTimer);
+      this.client.finish(this.matchId, this.myScore());
+      this.updateStatus();
+      this.checkFinal();
+    }
+
+    onRemoteTurn(message) {
+      if (!message || message.by === this.mySide) return;
+      if (typeof message.move?.score === "number") this.oppScore = message.move.score;
+      if (message.move?.gameOver || message.move?.final) this.oppFinished = true;
+      this.updateStatus();
+      this.checkFinal();
+    }
+
+    onFinish(message) {
+      if (!message || message.matchId !== this.matchId) return;
+      if (message.by === this.mySide) {
+        this.localFinished = true;
+      } else {
+        this.oppFinished = true;
+        this.oppScore = message.score;
+      }
+      this.updateStatus();
+      this.checkFinal();
+    }
+
+    updateStatus() {
+      const node = document.getElementById("or-status");
+      if (!node) return;
+      node.classList.toggle("done", this.localFinished);
+      node.textContent = this.localFinished
+        ? "你已完成，本场会在双方都结束后结算。"
+        : this.statusText || "双方独立作战 · 实时同步积分";
+    }
+
+    checkFinal() {
+      if (this.resultShown || !this.localFinished || !this.oppFinished) return;
+      const mine = this.myScore();
+      const opp = this.oppScore;
+      const title = mine > opp ? "🏆 你赢了！" : opp > mine ? "对手获胜" : "平局";
+      this.endMatch(title);
+    }
+
+    render() {
+      const box = { ox: 0, oy: 0, cell: this.cell };
+      nt(this.ctx, this.game.grid, box);
+      if (this.game.active && !this.localFinished) {
+        if (y.ghost) R(this.ctx, this.game.ghostCells(), box, .18);
+        const cells = this.game.active.cells.map((cell) => ({
+          x: this.game.active.px + cell.x,
+          y: this.game.active.py + cell.y,
+          element: cell.element
+        }));
+        R(this.ctx, cells, box, 1);
+      }
+      this.renderPanels();
+      this.renderWeather();
+      this.drawFlashes();
+    }
+
+    renderPanels() {
+      const mine = document.getElementById("or-me");
+      const opp = document.getElementById("or-opp");
+      if (!mine || !opp) return;
+      mine.className = `ppanel active ${this.localFinished ? "done" : ""}`;
+      opp.className = `ppanel side-B ${this.oppFinished ? "done" : ""}`;
+      mine.innerHTML = `<div class="p-id"><span class="pavatar">🧑</span><span class="pname">你</span></div><div class="p-score-wrap"><div class="pscore">${this.myScore()}</div><div class="plabel">分</div></div><div class="pstatus">${this.localFinished ? "已结算" : "作战中"}</div>`;
+      opp.innerHTML = `<div class="p-id"><span class="pavatar">🧑</span><span class="pname">${this.oppName}</span></div><div class="p-score-wrap"><div class="pscore">${this.oppScore}</div><div class="plabel">分</div></div><div class="pstatus">${this.oppFinished ? "已结算" : "作战中"}</div>`;
+    }
+
+    renderWeather() {
+      const station = document.getElementById("or-weather");
+      if (!station || !this.game?.weather) return;
+      const weather = this.game.weather.current;
+      station.innerHTML = `<div class="w-now">${z[weather]} <b>${Z[weather]}</b></div><div class="w-desc">${ft[weather]}</div>`;
+    }
+
+    drawFlashes() {
+      const now = performance.now();
+      this.flashes = this.flashes.filter((flash) => now - flash.t < 650);
+      for (const flash of this.flashes) {
+        const k0 = 1 - (now - flash.t) / 650;
+        const x0 = flash.x * this.cell + 1.5;
+        const y0 = flash.y * this.cell + 1.5;
+        const w0 = this.cell - 3;
+        const h0 = this.cell - 3;
+        const radius = this.cell * .2;
+        this.ctx.save();
+        this.ctx.globalAlpha = Math.min(1, k0 * 1.1);
+        this.ctx.strokeStyle = flash.destroy ? "#ff9a3c" : "#aee9ff";
+        this.ctx.lineWidth = 2 + k0 * 2.5;
+        this.ctx.shadowColor = flash.destroy ? "#ff7a3c" : "#6fc8ff";
+        this.ctx.shadowBlur = 14 * k0;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x0 + radius, y0);
+        this.ctx.arcTo(x0 + w0, y0, x0 + w0, y0 + h0, radius);
+        this.ctx.arcTo(x0 + w0, y0 + h0, x0, y0 + h0, radius);
+        this.ctx.arcTo(x0, y0 + h0, x0, y0, radius);
+        this.ctx.arcTo(x0, y0, x0 + w0, y0, radius);
+        this.ctx.closePath();
+        this.ctx.stroke();
+        this.ctx.restore();
+      }
+    }
+
+    endMatch(title) {
+      if (this.resultShown) return;
+      this.resultShown = true;
+      if (this.matchTimer) clearInterval(this.matchTimer);
+      const mine = this.myScore();
+      const opp = this.oppScore;
+      f.gameOver?.(mine >= opp);
+      const overlay = document.createElement("div");
+      overlay.className = "result-overlay";
+      overlay.innerHTML = `<div class="result-card"><h2>${title}</h2><p>你 ${mine} : ${opp} 对手</p><button id="or-again">继续匹配</button><button id="or-r-exit">返回中枢</button></div>`;
+      this.root.append(overlay);
+      document.getElementById("or-again").onclick = () => {
+        this.destroy();
+        new RealmOnlineRace(this.root, this.opts);
+      };
+      document.getElementById("or-r-exit").onclick = () => this.quit();
+    }
+
+    quit() {
+      if (this.matchId && !this.resultShown) this.client.leave(this.matchId);
+      this.destroy();
+      this.opts.onExit();
+    }
+
+    destroy() {
+      cancelAnimationFrame(this.raf);
+      if (this.fallTimer) clearInterval(this.fallTimer);
+      if (this.matchTimer) clearInterval(this.matchTimer);
+      if (this.keyHandler) window.removeEventListener("keydown", this.keyHandler);
+      if (this.client) this.client.close();
+    }
+  }
+
   function runTraining(mode) {
     if (mode === "assault") return _e("shared-turn");
     if (mode === "survival") return _e("survival");
@@ -2496,10 +3007,13 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 
   function runBattlefield(mode) {
     if (mode === "assault") return Ue();
-    showNotice(
-      "联网规则升级中",
-      "这个玩法已经归入源界战场，但真人版需要服务器支持双方独立棋盘、结束上报与赛果延迟结算。现在先保留入口和规则说明，避免把可用的真人攻防匹配弄坏。"
-    );
+    window.SuperCubeAccount?.ensure?.();
+    const serverUrl = "wss://match.supercubegame.com";
+    const name = window.SuperCubeAccount?.displayName?.() || "玩家";
+    y.serverUrl = serverUrl;
+    W();
+    L();
+    new RealmOnlineRace(x, { serverUrl, name, playerBag: C, gameMode: mode, onExit: I });
   }
 
   function runRift() {
@@ -2551,6 +3065,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
             <span class="realm-zone-icon">${zone.icon}</span>
             <span class="realm-zone-title">${zone.title}</span>
             <span class="realm-zone-sub">${zone.sub}</span>
+            <span class="realm-zone-kicker">${zone.action}</span>
           </button>`).join("")}
       </div>
       <div class="realm-mode-panel">
@@ -2558,6 +3073,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         <div class="realm-mode-grid">
           ${Object.entries(modes).map(([key, mode]) => `
             <button class="realm-mode-card" type="button" data-mode="${key}">
+              <span class="realm-mode-icon">${mode.icon}</span>
               <strong>${mode.title}</strong>
               <small>${mode.short}</small>
             </button>`).join("")}

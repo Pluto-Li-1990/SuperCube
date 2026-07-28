@@ -8,7 +8,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { WebSocketServer, WebSocket, type RawData } from "ws";
 import { AccountStore } from "./AccountStore.js";
 import { AppleTokenVerifier } from "./AppleTokenVerifier.js";
-import type { ClientMessage, PieceDefDTO, PlayerSide, ServerMessage } from "./types.js";
+import type { ClientMessage, GameMode, MoveDTO, PieceDefDTO, PlayerSide, ServerMessage } from "./types.js";
 
 type ClientMode = "IDLE" | "WAITING" | "PLAYING";
 
@@ -18,10 +18,15 @@ const MAX_PLAYER_NAME_CHARS = 24;
 const MAX_CUSTOM_BAG_PIECES = 16;
 const MAX_PIECE_CELLS = 4;
 const MAX_PIECE_TEXT_CHARS = 48;
+const MAX_TURN_INDEX = 1_000_000;
+const MIN_MOVE_PX = -8;
+const MAX_MOVE_PX = 64;
+const MAX_SCORE = 10_000_000;
 const MIN_ELEMENT = 0;
 const MAX_ELEMENT = 8;
 const MIN_CELL_COORD = -4;
 const MAX_CELL_COORD = 4;
+const GAME_MODES: GameMode[] = ["assault", "survival", "frenzy"];
 
 interface ClientState {
   id: string;
@@ -30,6 +35,7 @@ interface ClientState {
   name: string;
   accountId?: string;
   bag: PieceDefDTO[];
+  gameMode: GameMode;
   matchId?: string;
   side?: PlayerSide;
   lastPingAt: number;
@@ -38,7 +44,10 @@ interface ClientState {
 interface MatchState {
   id: string;
   seed: number;
+  gameMode: GameMode;
   expectedTurnIndex: number;
+  expectedTurnBySide: Record<PlayerSide, number>;
+  finishedScores: Partial<Record<PlayerSide, number>>;
   players: Record<PlayerSide, ClientState>;
 }
 
@@ -61,6 +70,45 @@ function sanitizeText(value: unknown, fallback: string, maxChars: number): strin
   }
 
   return Array.from(normalized).slice(0, maxChars).join("");
+}
+
+function sanitizeGameMode(value: unknown): GameMode {
+  return GAME_MODES.includes(value as GameMode) ? (value as GameMode) : "assault";
+}
+
+function sanitizeMove(value: unknown): MoveDTO | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  if (
+    !isBoundedInteger(value.rotation, 0, 3) ||
+    !isBoundedInteger(value.px, MIN_MOVE_PX, MAX_MOVE_PX) ||
+    typeof value.hardDrop !== "boolean"
+  ) {
+    return null;
+  }
+
+  const move: MoveDTO = {
+    rotation: value.rotation,
+    px: value.px,
+    hardDrop: value.hardDrop
+  };
+
+  if (isBoundedInteger(value.score, 0, MAX_SCORE)) {
+    move.score = value.score;
+  }
+  if (typeof value.gameOver === "boolean") {
+    move.gameOver = value.gameOver;
+  }
+  if (isBoundedInteger(value.linesCleared, 0, 20)) {
+    move.linesCleared = value.linesCleared;
+  }
+  if (typeof value.final === "boolean") {
+    move.final = value.final;
+  }
+
+  return move;
 }
 
 function sanitizeBag(value: unknown): PieceDefDTO[] {
@@ -339,6 +387,7 @@ export class NetcodeServer {
       mode: "IDLE",
       name: "Player",
       bag: [],
+      gameMode: "assault",
       lastPingAt: Date.now()
     };
     this.clients.add(client);
@@ -381,6 +430,9 @@ export class NetcodeServer {
       case "turn":
         this.handleTurn(client, message);
         break;
+      case "finish":
+        this.handleFinish(client, message);
+        break;
       case "leave":
         this.handleLeave(client, message.matchId);
         break;
@@ -401,7 +453,7 @@ export class NetcodeServer {
     }
 
     if (client.mode === "WAITING") {
-      this.send(client, { type: "queued" });
+      this.send(client, { type: "queued", gameMode: client.gameMode });
       return;
     }
 
@@ -409,9 +461,10 @@ export class NetcodeServer {
     client.accountId = account?.id;
     client.name = account?.displayName ?? sanitizeText(message.name, "Player", MAX_PLAYER_NAME_CHARS);
     client.bag = sanitizeBag(message.bag);
+    client.gameMode = sanitizeGameMode(message.gameMode);
     client.mode = "WAITING";
     this.waitingQueue.push(client);
-    this.send(client, { type: "queued" });
+    this.send(client, { type: "queued", gameMode: client.gameMode });
     this.tryCreateMatches();
   }
 
@@ -425,49 +478,74 @@ export class NetcodeServer {
   }
 
   private tryCreateMatches(): void {
-    while (this.waitingQueue.length >= 2) {
-      const playerA = this.nextWaitingClient();
-      const playerB = this.nextWaitingClient();
+    let created = true;
+    while (created) {
+      created = false;
+      for (const gameMode of GAME_MODES) {
+        const playerA = this.nextWaitingClient(gameMode);
+        if (!playerA) {
+          continue;
+        }
 
-      if (!playerA || !playerB) {
-        return;
+        const playerB = this.nextWaitingClient(gameMode);
+        if (!playerB) {
+          this.waitingQueue.unshift(playerA);
+          continue;
+        }
+
+        this.createMatch(playerA, playerB, gameMode);
+        created = true;
       }
-
-      const match: MatchState = {
-        id: randomUUID(),
-        seed: randomBytes(4).readUInt32BE(0),
-        expectedTurnIndex: 0,
-        players: { A: playerA, B: playerB }
-      };
-
-      this.matches.set(match.id, match);
-      this.markPlaying(playerA, match.id, "A");
-      this.markPlaying(playerB, match.id, "B");
-
-      const bags = { A: playerA.bag, B: playerB.bag };
-      this.send(playerA, {
-        type: "matchFound",
-        matchId: match.id,
-        seed: match.seed,
-        you: "A",
-        opponent: { name: playerB.name },
-        bags
-      });
-      this.send(playerB, {
-        type: "matchFound",
-        matchId: match.id,
-        seed: match.seed,
-        you: "B",
-        opponent: { name: playerA.name },
-        bags
-      });
     }
   }
 
-  private nextWaitingClient(): ClientState | undefined {
-    while (this.waitingQueue.length > 0) {
-      const client = this.waitingQueue.shift();
-      if (client && client.mode === "WAITING" && client.ws.readyState === WebSocket.OPEN) {
+  private createMatch(playerA: ClientState, playerB: ClientState, gameMode: GameMode): void {
+    const match: MatchState = {
+      id: randomUUID(),
+      seed: randomBytes(4).readUInt32BE(0),
+      gameMode,
+      expectedTurnIndex: 0,
+      expectedTurnBySide: { A: 0, B: 0 },
+      finishedScores: {},
+      players: { A: playerA, B: playerB }
+    };
+
+    this.matches.set(match.id, match);
+    this.markPlaying(playerA, match.id, "A");
+    this.markPlaying(playerB, match.id, "B");
+
+    const bags = { A: playerA.bag, B: playerB.bag };
+    this.send(playerA, {
+      type: "matchFound",
+      matchId: match.id,
+      seed: match.seed,
+      gameMode,
+      you: "A",
+      opponent: { name: playerB.name },
+      bags
+    });
+    this.send(playerB, {
+      type: "matchFound",
+      matchId: match.id,
+      seed: match.seed,
+      gameMode,
+      you: "B",
+      opponent: { name: playerA.name },
+      bags
+    });
+  }
+
+  private nextWaitingClient(gameMode: GameMode): ClientState | undefined {
+    for (let index = 0; index < this.waitingQueue.length; index += 1) {
+      const client = this.waitingQueue[index];
+      if (client.mode !== "WAITING" || client.ws.readyState !== WebSocket.OPEN) {
+        this.waitingQueue.splice(index, 1);
+        index -= 1;
+        continue;
+      }
+
+      if (client.gameMode === gameMode) {
+        this.waitingQueue.splice(index, 1);
         return client;
       }
     }
@@ -485,16 +563,34 @@ export class NetcodeServer {
     if (
       !match ||
       client.mode !== "PLAYING" ||
-      client.matchId !== message.matchId
+      client.matchId !== message.matchId ||
+      !client.side ||
+      !isBoundedInteger(message.turnIndex, 0, MAX_TURN_INDEX)
     ) {
       this.sendError(client, "OUT_OF_ORDER", "Turn is not the next expected turn for this player.");
       return;
     }
 
-    const expectedSide: PlayerSide = match.expectedTurnIndex % 2 === 0 ? "A" : "B";
-    if (client.side !== expectedSide || message.turnIndex !== match.expectedTurnIndex) {
-      this.sendError(client, "OUT_OF_ORDER", "Turn is not the next expected turn for this player.");
+    const move = sanitizeMove(message.move);
+    if (!move) {
+      this.sendError(client, "BAD_MESSAGE", "Move payload is invalid.");
       return;
+    }
+
+    if (match.gameMode === "assault") {
+      const expectedSide: PlayerSide = match.expectedTurnIndex % 2 === 0 ? "A" : "B";
+      if (client.side !== expectedSide || message.turnIndex !== match.expectedTurnIndex) {
+        this.sendError(client, "OUT_OF_ORDER", "Turn is not the next expected turn for this player.");
+        return;
+      }
+      match.expectedTurnIndex += 1;
+    } else {
+      const expectedTurnIndex = match.expectedTurnBySide[client.side];
+      if (message.turnIndex !== expectedTurnIndex) {
+        this.sendError(client, "OUT_OF_ORDER", "Turn is not the next expected turn for this player.");
+        return;
+      }
+      match.expectedTurnBySide[client.side] += 1;
     }
 
     const payload: ServerMessage = {
@@ -502,10 +598,37 @@ export class NetcodeServer {
       matchId: match.id,
       turnIndex: message.turnIndex,
       by: client.side,
-      move: message.move
+      move
     };
     this.broadcast(match, payload);
-    match.expectedTurnIndex += 1;
+  }
+
+  private handleFinish(client: ClientState, message: Extract<ClientMessage, { type: "finish" }>): void {
+    const match = this.matches.get(message.matchId);
+    if (
+      !match ||
+      client.mode !== "PLAYING" ||
+      client.matchId !== message.matchId ||
+      !client.side ||
+      !isBoundedInteger(message.score, 0, MAX_SCORE)
+    ) {
+      this.sendError(client, "OUT_OF_ORDER", "Finish is not valid for this match.");
+      return;
+    }
+
+    match.finishedScores[client.side] = message.score;
+    this.broadcast(match, {
+      type: "finish",
+      matchId: match.id,
+      by: client.side,
+      score: message.score
+    });
+
+    if (match.finishedScores.A !== undefined && match.finishedScores.B !== undefined) {
+      this.matches.delete(match.id);
+      this.resetClientMatchState(match.players.A);
+      this.resetClientMatchState(match.players.B);
+    }
   }
 
   private handleLeave(client: ClientState, matchId?: string): void {
@@ -560,6 +683,7 @@ export class NetcodeServer {
     client.mode = "IDLE";
     client.matchId = undefined;
     client.side = undefined;
+    client.gameMode = "assault";
   }
 
   private removeFromQueue(client: ClientState): void {
