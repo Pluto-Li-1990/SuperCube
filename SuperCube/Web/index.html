@@ -1275,7 +1275,151 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   }
 
   .ws-shelf {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .ws-back {
+    margin: 12px 16px 10px;
+  }
+
+  .ws-wrap {
+    display: grid;
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 0 18px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .ws-left h2 {
+    font-size: 34px;
+    line-height: 1.08;
+  }
+
+  .ws-hint {
+    margin-bottom: 8px;
+  }
+
+  .ws-canvas {
+    width: min(100%, 268px) !important;
+    height: auto !important;
+  }
+
+  .ws-status {
+    margin-top: 8px;
+  }
+
+  .ws-btnrow {
+    margin-top: 8px;
+  }
+
+  .ws-btn {
+    padding: 10px 16px;
+  }
+
+  .ws-right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  #ws-shelf-title {
+    order: 1;
+    margin: 0;
+  }
+
+  #ws-shelf {
+    order: 2;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 2px;
+  }
+
+  .ws-right > h3:not(#ws-shelf-title) {
+    order: 3;
+    margin: 4px 0 0;
+  }
+
+  .ws-palette {
+    order: 4;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .ws-element-desc {
+    order: 5;
+    margin: 0;
+    padding: 10px;
+  }
+
+  .ws-swatch {
+    min-height: 62px;
+    border-radius: 12px;
+  }
+
+  .ws-swatch::after {
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    font-size: 12px;
+  }
+
+  .ws-shelf-empty {
+    min-height: 64px;
+    padding: 12px;
+  }
+
+  .ws-shelf-item {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: 96px;
+    gap: 5px;
+    padding: 7px 6px 24px;
+    text-align: center;
+  }
+
+  .ws-shelf-item canvas {
+    width: 52px;
+    height: 52px;
+  }
+
+  .ws-shelf-meta {
+    align-items: center;
+    gap: 1px;
+    width: 100%;
+  }
+
+  .ws-shelf-meta span {
+    max-width: 100%;
+    font-size: 11px;
+  }
+
+  .ws-shelf-meta small {
+    font-size: 10px;
+  }
+
+  .ws-del {
+    top: auto;
+    right: 6px;
+    bottom: 5px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 520px) and (max-height: 760px) {
+  .ws-canvas {
+    width: min(100%, 238px) !important;
+  }
+
+  .ws-swatch {
+    min-height: 54px;
+  }
+
+  .ws-element-desc p {
+    font-size: 11px;
+    line-height: 1.35;
   }
 }
 </style>
