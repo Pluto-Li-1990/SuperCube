@@ -1268,6 +1268,116 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   background: rgba(255,255,255,.12);
 }
 
+#ws-shelf-title,
+#ws-shelf {
+  display: none !important;
+}
+
+.ws-shelf-trigger {
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 13px 14px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 3px 12px;
+  align-items: center;
+  text-align: left;
+  color: #f2f7ff;
+  border: 1px solid rgba(90,168,255,.32);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(28,33,48,.9), rgba(18,38,68,.78));
+  box-shadow: 0 10px 24px rgba(20,90,160,.12);
+}
+
+.ws-shelf-trigger span {
+  font-weight: 900;
+  font-size: 15px;
+}
+
+.ws-shelf-trigger b {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  color: #9fd0ff;
+  font-size: 18px;
+}
+
+.ws-shelf-trigger small {
+  color: #8fa0bc;
+  font-size: 11px;
+}
+
+.ws-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 180;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(0,0,0,.54);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.ws-drawer {
+  width: min(380px, 88vw);
+  height: 100%;
+  padding: calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-left: 1px solid rgba(255,255,255,.1);
+  background: rgba(11,14,22,.96);
+  box-shadow: -22px 0 40px rgba(0,0,0,.45);
+  transform: translateX(100%);
+  animation: wsDrawerIn .2s ease forwards;
+}
+
+@keyframes wsDrawerIn {
+  to { transform: translateX(0); }
+}
+
+.ws-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ws-drawer-head h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.ws-drawer-close {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  background: rgba(255,255,255,.1);
+  font-size: 22px;
+}
+
+.ws-drawer-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 2px 8px;
+}
+
+.ws-drawer-list .ws-shelf-item {
+  grid-template-columns: 64px 1fr;
+  text-align: left;
+  min-height: 84px;
+}
+
+.ws-drawer-list .ws-shelf-item canvas {
+  width: 64px;
+  height: 64px;
+}
+
 @media (max-width: 520px) {
   .tool-btn {
     min-width: 68px;
@@ -1422,6 +1532,41 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     line-height: 1.35;
   }
 }
+
+@media (max-width: 520px) {
+  .ws-shelf-trigger {
+    order: 0;
+    margin-bottom: 2px;
+  }
+
+  .ws-drawer {
+    width: min(340px, 92vw);
+  }
+
+  .ws-drawer-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ws-drawer-list .ws-shelf-item {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    min-height: 112px;
+    padding: 8px 6px 28px;
+    text-align: center;
+  }
+
+  .ws-drawer-list .ws-shelf-item canvas {
+    width: 52px;
+    height: 52px;
+  }
+
+  .ws-drawer-list .ws-del {
+    top: auto;
+    right: 6px;
+    bottom: 5px;
+  }
+}
 </style>
 <script>
 (function testflightPolishPatch() {
@@ -1551,6 +1696,112 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
   }
 
+  function shelfLimit() {
+    return typeof J === "number" ? J : 9;
+  }
+
+  function updateShelfTrigger(workshop) {
+    const title = document.getElementById("ws-shelf-title");
+    const shelfNode = document.getElementById("ws-shelf");
+    if (!title || !shelfNode) return;
+
+    let trigger = document.getElementById("ws-shelf-trigger");
+    if (!trigger) {
+      trigger = document.createElement("button");
+      trigger.id = "ws-shelf-trigger";
+      trigger.className = "ws-shelf-trigger";
+      trigger.type = "button";
+      trigger.innerHTML = "<span>源块陈列</span><b></b><small></small>";
+      title.parentNode?.insertBefore(trigger, title);
+    }
+
+    const count = workshop?.shelf?.length || 0;
+    const limit = shelfLimit();
+    trigger.querySelector("b").textContent = `${count}/${limit}`;
+    trigger.querySelector("small").textContent = count
+      ? "点击查看、整理已锻造源块"
+      : "暂无源块，锻造后会保存到这里";
+    trigger.onclick = () => openShelfDrawer(workshop);
+  }
+
+  function closeShelfDrawer() {
+    document.querySelector(".ws-drawer-backdrop")?.remove();
+  }
+
+  function renderShelfDrawerList(list, workshop) {
+    if (!list) return;
+    list.innerHTML = "";
+    const pieces = workshop?.shelf || [];
+    if (!pieces.length) {
+      const empty = document.createElement("div");
+      empty.className = "ws-shelf-empty";
+      empty.textContent = "暂时还没有源块。先摆放 4×4 画布，再点击锻造入库。";
+      list.append(empty);
+      return;
+    }
+
+    pieces.forEach((piece, index) => {
+      const item = document.createElement("div");
+      item.className = "ws-shelf-item";
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 72;
+      canvas.height = 72;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#080a10";
+      ctx.fillRect(0, 0, 72, 72);
+      const unit = 16;
+      for (const cell of piece.cells) drawBlock(ctx, 4 + cell.x * unit, 4 + cell.y * unit, unit, cell.element);
+
+      const meta = document.createElement("div");
+      meta.className = "ws-shelf-meta";
+      const name = document.createElement("span");
+      name.textContent = piece.name || `源块#${index + 1}`;
+      const detail = document.createElement("small");
+      detail.textContent = `${piece.cells.length} 块 · 已保存`;
+      meta.append(name, detail);
+
+      const del = document.createElement("button");
+      del.className = "ws-del";
+      del.type = "button";
+      del.textContent = "×";
+      del.setAttribute("aria-label", "删除源块");
+      del.onclick = () => {
+        workshop.shelf.splice(index, 1);
+        saveShelf(workshop.shelf);
+        try {
+          C = workshop.getShelf();
+        } catch {}
+        workshop.renderShelf?.();
+        renderShelfDrawerList(list, workshop);
+      };
+
+      item.append(canvas, meta, del);
+      list.append(item);
+    });
+  }
+
+  function openShelfDrawer(workshop) {
+    if (!workshop) return;
+    closeShelfDrawer();
+    const backdrop = document.createElement("div");
+    backdrop.className = "ws-drawer-backdrop";
+    backdrop.innerHTML = `
+      <aside class="ws-drawer" role="dialog" aria-modal="true" aria-label="源块陈列">
+        <div class="ws-drawer-head">
+          <h3>源块陈列</h3>
+          <button class="ws-drawer-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="ws-drawer-list"></div>
+      </aside>`;
+    backdrop.addEventListener("click", (event) => {
+      if (event.target === backdrop) closeShelfDrawer();
+    });
+    backdrop.querySelector(".ws-drawer-close")?.addEventListener("click", closeShelfDrawer);
+    document.body.append(backdrop);
+    renderShelfDrawerList(backdrop.querySelector(".ws-drawer-list"), workshop);
+  }
+
   function patchWorkshop() {
     if (typeof xe === "undefined") return;
     try {
@@ -1574,6 +1825,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         empty.className = "ws-shelf-empty";
         empty.textContent = "已入库的棋子会显示在这里，并自动保存到本机。";
         shelfNode.append(empty);
+        updateShelfTrigger(this);
         return;
       }
 
@@ -1615,6 +1867,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
         item.append(canvas, meta, del);
         shelfNode.append(item);
       });
+      updateShelfTrigger(this);
     };
 
     const originalBuild = xe.prototype.build;
