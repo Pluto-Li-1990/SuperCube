@@ -2222,5 +2222,484 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   }).observe(app, { childList: true, subtree: true });
 })();
 </script>
+<style>
+.realm-lobby {
+  min-height: 100vh;
+  padding: 12px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.realm-lobby .lobby-hero {
+  padding: 2px 0 0;
+}
+
+.realm-zone-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+}
+
+.realm-zone-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 12px;
+  align-items: center;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  color: var(--text);
+  background: rgba(28,33,48,.64);
+  text-align: left;
+  box-shadow: 0 10px 22px rgba(0,0,0,.18);
+}
+
+.realm-zone-card.sel {
+  border-color: rgba(90,168,255,.72);
+  background: linear-gradient(135deg, rgba(36,79,132,.72), rgba(56,32,94,.68));
+  box-shadow: 0 0 24px rgba(54,163,255,.24);
+}
+
+.realm-zone-icon {
+  grid-row: 1 / 3;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: rgba(255,255,255,.1);
+}
+
+.realm-zone-title {
+  font-size: 17px;
+  font-weight: 950;
+  line-height: 1.18;
+}
+
+.realm-zone-sub {
+  color: rgba(230,235,242,.64);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.realm-mode-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 16px;
+  background: rgba(15,19,30,.58);
+}
+
+.realm-mode-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.realm-mode-panel-head b {
+  font-size: 15px;
+}
+
+.realm-mode-panel-head span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.realm-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.realm-mode-card {
+  min-height: 82px;
+  padding: 9px 8px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text);
+  background: rgba(28,33,48,.7);
+  text-align: left;
+}
+
+.realm-mode-card.sel {
+  border-color: rgba(255,210,95,.74);
+  background: linear-gradient(140deg, rgba(63,58,35,.74), rgba(24,58,86,.72));
+}
+
+.realm-mode-card[aria-disabled="true"] {
+  opacity: .55;
+}
+
+.realm-mode-card strong {
+  font-size: 13px;
+}
+
+.realm-mode-card small {
+  color: rgba(230,235,242,.62);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.realm-mode-desc {
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: rgba(230,235,242,.76);
+  background: rgba(90,168,255,.09);
+  border: 1px solid rgba(90,168,255,.14);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.realm-toast {
+  position: fixed;
+  inset: 0;
+  z-index: 170;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0,0,0,.58);
+}
+
+.realm-toast-card {
+  width: min(360px, 100%);
+  border-radius: 20px;
+  padding: 20px;
+  color: #f3f7ff;
+  background: linear-gradient(180deg, rgba(28,33,48,.98), rgba(10,13,22,.98));
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 24px 70px rgba(0,0,0,.48);
+}
+
+.realm-toast-card h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.realm-toast-card p {
+  margin: 0 0 16px;
+  color: rgba(243,247,255,.72);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.realm-toast-card button {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px;
+  color: #07111c;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffd45d, #62c3ff);
+}
+
+@media (min-width: 560px) {
+  .realm-zone-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .realm-zone-card {
+    min-height: 118px;
+    grid-template-columns: 1fr;
+  }
+
+  .realm-zone-icon {
+    grid-row: auto;
+  }
+}
+</style>
+<script>
+(() => {
+  if (window.__supercubeRealmLobbyV2) return;
+  window.__supercubeRealmLobbyV2 = true;
+
+  const zones = {
+    training: {
+      icon: "♟",
+      title: "大师训练室",
+      sub: "vs AI · 熟悉规则与源块组合",
+      detail: "在稳定源界里和 AI 练攻防、耐久与冲分，后续天梯规则会先在这里打磨。",
+      action: "进入训练"
+    },
+    battlefield: {
+      icon: "◇",
+      title: "源界战场",
+      sub: "在线匹配 · 真人对战",
+      detail: "连接源界战场，与真人匹配。当前先开放攻防战争，生存与限时需要下一版联网协议支持双方独立棋盘。",
+      action: "开始匹配"
+    },
+    rift: {
+      icon: "✦",
+      title: "时空乱流",
+      sub: "乱斗模式 · 周期轮换",
+      detail: "平行源界短暂交汇后的异常回声。这里会放入不同于标准认知的规则池，逐步扩展 IP 故事线。",
+      action: "查看乱流"
+    }
+  };
+
+  const modes = {
+    assault: {
+      title: "攻防战争",
+      short: "一人一次落子，抢分与截胡",
+      detail: "标准战。双方共用同一块源界棋盘，轮流落子；消除整行才计分，触顶则结束。"
+    },
+    survival: {
+      title: "生存竞技",
+      short: "各自坚持到封顶，最后比分判定",
+      detail: "目标规则：双方各自一盘，直到都封顶后比较积分。当前大师训练室先作为耐久训练开放。"
+    },
+    frenzy: {
+      title: "限时狂欢",
+      short: "3 分钟冲分，封顶不死",
+      detail: "3 分钟内尽量拿高分。顶部堵住时会清掉底部 4 行继续冲分，不因封顶立刻死亡。"
+    }
+  };
+
+  function art(el) {
+    try { return k?.[el] || ""; } catch { return ""; }
+  }
+
+  function showNotice(title, body) {
+    document.querySelector(".realm-toast")?.remove();
+    const overlay = document.createElement("div");
+    overlay.className = "realm-toast";
+    overlay.innerHTML = `
+      <div class="realm-toast-card" role="dialog" aria-modal="true">
+        <h3>${title}</h3>
+        <p>${body}</p>
+        <button type="button">知道了</button>
+      </div>`;
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay || event.target.tagName === "BUTTON") overlay.remove();
+    });
+    document.body.append(overlay);
+  }
+
+  function runTraining(mode) {
+    if (mode === "assault") return _e("shared-turn");
+    if (mode === "survival") return _e("survival");
+    return _e("time-attack");
+  }
+
+  function runBattlefield(mode) {
+    if (mode === "assault") return Ue();
+    showNotice(
+      "联网规则升级中",
+      "生存竞技和限时狂欢需要服务器支持双方独立棋盘、结束上报与赛果延迟结算。现在先保留入口和规则说明，避免把可用的真人攻防匹配弄坏。"
+    );
+  }
+
+  function runRift() {
+    showNotice(
+      "时空乱流正在积蓄",
+      "乱斗模式会以规则池方式轮换出现，例如元素偏置、异常天气、特殊源块限制等。第一期规则库完成后再开放进入。"
+    );
+  }
+
+  function updateToolButtons() {
+    const tools = [
+      ["m-workshop", '<span class="tool-ico">✦</span><small>锻造</small>', "源块锻造"],
+      ["m-tutorial", '<span class="tool-ico">📜</span><small>教程</small>', "源界教程"],
+      ["m-settings", '<span class="tool-ico">⚙</span><small>设置</small>', "系统设置"]
+    ];
+    for (const [id, html, title] of tools) {
+      const button = document.getElementById(id);
+      if (!button) continue;
+      button.innerHTML = html;
+      button.title = title;
+      button.setAttribute("aria-label", title);
+    }
+  }
+
+  const originalLobby = I;
+  I = function realmLobbyV2() {
+    if (typeof L === "function") L();
+    else document.getElementById("app").innerHTML = "";
+
+    const wrap = document.createElement("div");
+    wrap.className = "lobby realm-lobby";
+    wrap.innerHTML = `
+      <div class="lobby-topbar">
+        <div class="lt-profile"><div class="lt-avatar">🧑</div>
+          <div><div class="lt-name">玩家</div><div class="lt-rank">🏆 未定级</div></div></div>
+        <div class="lt-currency">◆ <b>0</b> 碎片</div>
+      </div>
+      <div class="lobby-hero">
+        <div class="hero-cube">
+          <img src="${art(r.Fire)}" alt=""><img src="${art(r.Water)}" alt="">
+          <img src="${art(r.Wood)}" alt=""><img src="${art(r.Life)}" alt="">
+        </div>
+        <h1 class="logo">源界中枢</h1>
+        <p class="tagline">训练 · 战场 · 乱流</p>
+      </div>
+      <div class="realm-zone-grid">
+        ${Object.entries(zones).map(([key, zone]) => `
+          <button class="realm-zone-card" type="button" data-zone="${key}">
+            <span class="realm-zone-icon">${zone.icon}</span>
+            <span class="realm-zone-title">${zone.title}</span>
+            <span class="realm-zone-sub">${zone.sub}</span>
+          </button>`).join("")}
+      </div>
+      <div class="realm-mode-panel">
+        <div class="realm-mode-panel-head"><b id="realm-panel-title"></b><span id="realm-panel-sub"></span></div>
+        <div class="realm-mode-grid">
+          ${Object.entries(modes).map(([key, mode]) => `
+            <button class="realm-mode-card" type="button" data-mode="${key}">
+              <strong>${mode.title}</strong>
+              <small>${mode.short}</small>
+            </button>`).join("")}
+        </div>
+        <div class="realm-mode-desc" id="realm-mode-desc"></div>
+      </div>
+      <div class="lobby-diff">AI 难度
+        <button data-d="easy">简单</button>
+        <button data-d="normal" class="sel">普通</button>
+        <button data-d="hard">困难</button>
+      </div>
+      <button class="play-btn" id="lobby-start"><span class="pb-icon">▶</span> 进入训练</button>
+      <div class="tool-row">
+        <button class="tool-btn" id="m-workshop" title="源块锻造">✦</button>
+        <button class="tool-btn" id="m-tutorial" title="源界教程">📜</button>
+        <button class="tool-btn" id="m-settings" title="系统设置">⚙</button>
+      </div>`;
+
+    x.append(wrap);
+    let selectedZone = "training";
+    let selectedMode = "assault";
+    const diff = wrap.querySelector(".lobby-diff");
+    const start = document.getElementById("lobby-start");
+    const panelTitle = document.getElementById("realm-panel-title");
+    const panelSub = document.getElementById("realm-panel-sub");
+    const desc = document.getElementById("realm-mode-desc");
+
+    const renderSelection = () => {
+      wrap.querySelectorAll(".realm-zone-card").forEach((button) => {
+        button.classList.toggle("sel", button.dataset.zone === selectedZone);
+      });
+      wrap.querySelectorAll(".realm-mode-card").forEach((button) => {
+        const disabled = selectedZone === "rift" || (selectedZone === "battlefield" && button.dataset.mode !== "assault");
+        button.classList.toggle("sel", button.dataset.mode === selectedMode);
+        button.setAttribute("aria-disabled", String(disabled));
+      });
+      const zone = zones[selectedZone];
+      const mode = modes[selectedMode];
+      panelTitle.textContent = zone.title;
+      panelSub.textContent = selectedZone === "rift" ? "规则池筹备中" : "选择作战规则";
+      desc.textContent = selectedZone === "rift" ? zone.detail : `${mode.detail} ${zone.detail}`;
+      diff.hidden = selectedZone !== "training";
+      start.innerHTML = selectedZone === "battlefield"
+        ? '<span class="pb-icon">◇</span> 开始匹配'
+        : selectedZone === "rift"
+          ? '<span class="pb-icon">✦</span> 查看乱流'
+          : '<span class="pb-icon">▶</span> 进入训练';
+    };
+
+    wrap.querySelectorAll(".realm-zone-card").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedZone = button.dataset.zone;
+        if (selectedZone === "rift") selectedMode = "assault";
+        renderSelection();
+      });
+    });
+    wrap.querySelectorAll(".realm-mode-card").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedMode = button.dataset.mode;
+        renderSelection();
+      });
+    });
+    start.onclick = () => {
+      if (selectedZone === "training") return runTraining(selectedMode);
+      if (selectedZone === "battlefield") return runBattlefield(selectedMode);
+      return runRift();
+    };
+    document.getElementById("m-workshop").onclick = () => qe();
+    document.getElementById("m-settings").onclick = () => {
+      if (typeof L === "function") L();
+      new we(x, I);
+    };
+    document.getElementById("m-tutorial").onclick = () => Bt();
+    wrap.querySelectorAll(".lobby-diff button").forEach((button) => {
+      button.onclick = () => {
+        At = button.dataset.d;
+        wrap.querySelectorAll(".lobby-diff button").forEach((node) => node.classList.remove("sel"));
+        button.classList.add("sel");
+      };
+    });
+    updateToolButtons();
+    renderSelection();
+  };
+
+  if (typeof Te === "function") {
+    Te = function realmModeName(mode) {
+      return mode === "shared-turn" ? "攻防战争" : mode === "survival" ? "生存竞技" : "限时狂欢";
+    };
+  }
+
+  if (typeof Ee !== "undefined" && !Ee.prototype.__realmThreeMinuteFrenzy) {
+    Ee.prototype.startMatchTimer = function realmThreeMinuteTimer() {
+      this.timeLeft = 180;
+      this.updateTimerUI();
+      this.matchTimer = setInterval(() => {
+        this.timeLeft = Math.max(0, this.timeLeft - 1);
+        this.updateTimerUI();
+        if (this.timeLeft <= 0) {
+          if (this.matchTimer) clearInterval(this.matchTimer);
+          this.game.gameOver = true;
+          const a = this.game.players.A.score;
+          const b = this.game.players.B.score;
+          this.game.winner = a > b ? "A" : b > a ? "B" : null;
+          this.showResult();
+        }
+      }, 1000);
+    };
+    Ee.prototype.__realmThreeMinuteFrenzy = true;
+  }
+
+  if (typeof U !== "undefined" && !U.prototype.__realmBottomClearFrenzy) {
+    U.prototype.spawn = function realmBottomClearSpawn() {
+      const player = this.players[this.current];
+      const def = this.drawPiece(player);
+      let cells = F(def.cells.map((cell) => ({ ...cell })));
+      if (!def.custom) {
+        const element = this.rollElement();
+        cells = cells.map((cell) => ({ ...cell, element }));
+      }
+      const { w } = bt(cells);
+      const px = Math.floor((this.grid.w - w) / 2);
+      this.active = { def, cells, px, py: 0 };
+      if (!this.collides(this.active, 0, 0)) return;
+      if (this.mode === "time-attack") {
+        let guard = 0;
+        while (this.collides(this.active, 0, 0) && guard < 5) {
+          const rows = [];
+          for (let y0 = Math.max(0, this.grid.h - 4); y0 < this.grid.h; y0++) rows.push(y0);
+          this.grid.removeRows(rows);
+          guard++;
+        }
+        if (!this.collides(this.active, 0, 0)) return;
+        for (let y0 = 0; y0 < this.grid.h; y0++)
+          for (let x0 = 0; x0 < this.grid.w; x0++)
+            this.grid.clearCell(x0, y0);
+        if (!this.collides(this.active, 0, 0)) return;
+      }
+      this.onTopOut();
+    };
+    U.prototype.__realmBottomClearFrenzy = true;
+  }
+})();
+</script>
 </body>
 </html>
