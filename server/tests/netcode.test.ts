@@ -169,6 +169,34 @@ describe("SuperCube netcode server", () => {
     expect(matchB.bags).toEqual({ A: testBagA, B: testBagB });
   });
 
+  it("cross-injects self and opponent loadout bags for source-block duels", async () => {
+    const a = await newClient();
+    const b = await newClient();
+    const aSelf: PieceDefDTO[] = [
+      { id: "a-self", name: "A Self", custom: true, cells: [{ x: 0, y: 0, element: 1 }] }
+    ];
+    const aOpp: PieceDefDTO[] = [
+      { id: "a-curse", name: "A Curse", custom: true, cells: [{ x: 1, y: 0, element: 2 }] }
+    ];
+    const bSelf: PieceDefDTO[] = [
+      { id: "b-self", name: "B Self", custom: true, cells: [{ x: 0, y: 1, element: 3 }] }
+    ];
+    const bOpp: PieceDefDTO[] = [
+      { id: "b-curse", name: "B Curse", custom: true, cells: [{ x: 1, y: 1, element: 4 }] }
+    ];
+
+    a.send({ type: "queue", name: "Alice", selfBag: aSelf, oppBag: aOpp });
+    await a.waitFor((message) => message.type === "queued");
+    b.send({ type: "queue", name: "Bob", selfBag: bSelf, oppBag: bOpp });
+    await b.waitFor((message) => message.type === "queued");
+
+    const { matchA, matchB } = await waitForMatch(a, b);
+
+    expect(matchA.bags.A.map((piece) => piece.id)).toEqual(["a-self", "b-curse"]);
+    expect(matchA.bags.B.map((piece) => piece.id)).toEqual(["b-self", "a-curse"]);
+    expect(matchB.bags).toEqual(matchA.bags);
+  });
+
   it("matches only players queued for the same online mode", async () => {
     const survivalA = await newClient();
     const assault = await newClient();
