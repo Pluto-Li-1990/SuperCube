@@ -19,7 +19,15 @@ export interface PieceDefDTO {
 }
 
 export type ClientMessage =
-  | { type: "queue"; name: string; bag?: PieceDefDTO[]; accountToken?: string; gameMode?: GameMode }
+  | {
+      type: "queue";
+      name: string;
+      bag?: PieceDefDTO[];
+      selfBag?: PieceDefDTO[];
+      oppBag?: PieceDefDTO[];
+      accountToken?: string;
+      gameMode?: GameMode;
+    }
   | { type: "cancelQueue" }
   | { type: "turn"; matchId: string; turnIndex: number; move: MoveDTO }
   | { type: "finish"; matchId: string; score: number }

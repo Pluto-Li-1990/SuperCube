@@ -34,7 +34,8 @@ interface ClientState {
   mode: ClientMode;
   name: string;
   accountId?: string;
-  bag: PieceDefDTO[];
+  selfBag: PieceDefDTO[];
+  oppBag: PieceDefDTO[];
   gameMode: GameMode;
   matchId?: string;
   side?: PlayerSide;
@@ -386,7 +387,8 @@ export class NetcodeServer {
       ws,
       mode: "IDLE",
       name: "Player",
-      bag: [],
+      selfBag: [],
+      oppBag: [],
       gameMode: "assault",
       lastPingAt: Date.now()
     };
@@ -460,7 +462,9 @@ export class NetcodeServer {
     const account = this.accountStore.getByToken(message.accountToken);
     client.accountId = account?.id;
     client.name = account?.displayName ?? sanitizeText(message.name, "Player", MAX_PLAYER_NAME_CHARS);
-    client.bag = sanitizeBag(message.bag);
+    const legacyBag = sanitizeBag(message.bag);
+    client.selfBag = message.selfBag ? sanitizeBag(message.selfBag) : legacyBag;
+    client.oppBag = message.oppBag ? sanitizeBag(message.oppBag) : [];
     client.gameMode = sanitizeGameMode(message.gameMode);
     client.mode = "WAITING";
     this.waitingQueue.push(client);
@@ -514,7 +518,10 @@ export class NetcodeServer {
     this.markPlaying(playerA, match.id, "A");
     this.markPlaying(playerB, match.id, "B");
 
-    const bags = { A: playerA.bag, B: playerB.bag };
+    const bags = {
+      A: this.mergeBags(playerA.selfBag, playerB.oppBag),
+      B: this.mergeBags(playerB.selfBag, playerA.oppBag)
+    };
     this.send(playerA, {
       type: "matchFound",
       matchId: match.id,
@@ -533,6 +540,10 @@ export class NetcodeServer {
       opponent: { name: playerA.name },
       bags
     });
+  }
+
+  private mergeBags(selfBag: PieceDefDTO[], oppBag: PieceDefDTO[]): PieceDefDTO[] {
+    return [...selfBag, ...oppBag].slice(0, MAX_CUSTOM_BAG_PIECES);
   }
 
   private nextWaitingClient(gameMode: GameMode): ClientState | undefined {

@@ -45,24 +45,24 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       <div class="w-now">${z[t.current]} <b>${Z[t.current]}</b>
         <span class="w-turns">${t.turnsUntilSwitch} 回合后变天</span></div>
       <div class="w-desc">${ft[t.current]}</div>
-      <div class="w-forecast">预报: ${z[t.nextForecast]} ${Z[t.nextForecast]} <span class="w-warn">(可能不准)</span></div>`}destroy(){cancelAnimationFrame(this.raf),this.fallTimer&&clearInterval(this.fallTimer),this.matchTimer&&clearInterval(this.matchTimer),this._keyHandler&&window.removeEventListener("keydown",this._keyHandler)}}function Te(i){return i==="shared-turn"?"同屏回合制":i==="survival"?"生存竞技":"限时狂欢"}function ke(i){const t=[],e=new Map;for(const s of i.cells)e.set(`${s.x},${s.y}`,s.element);for(let s=0;s<4;s++)for(let n=0;n<4;n++){const a=e.get(`${n},${s}`),o=a?it[a]:"transparent";t.push(`<i style="background:${o}" title="${a?st[a]:""}"></i>`)}return`<div class="mini4">${t.join("")}</div>`}const kt={[r.Empty]:{name:"空",tagline:"",detail:""},[r.Earth]:{name:"砖土",tagline:"惰性基石",detail:"不参与任何反应，用来当地基和隔离带。"},[r.Fire]:{name:"火焰",tagline:"蔓延",detail:"与相邻木头反应，3回合后蔓延、烧掉木头变成新火；遇水则与水共同湮灭消失；雨天会熄灭。元素反应不得分。"},[r.Water]:{name:"水",tagline:"催生·爆破",detail:"让相邻木头上方长出新木（晴天长2格）；遇到带电金属立即触发3×3爆炸；雪天结成冰。"},[r.Wood]:{name:"木",tagline:"可燃·可生长",detail:"会被火点燃、被水催生。是火与水反应的核心载体。"},[r.Metal]:{name:"金属",tagline:"超重·导电",detail:"停在木头/冰上方3回合会压碎下方一层并整列下移；雷暴天带电，引爆相邻水、并把相邻生命退化成砖土。"},[r.Ice]:{name:"冰",tagline:"滑动",detail:"触底后会随机向左或向右滑到底；与水相邻3回合后自己化成水。"},[r.Sticky]:{name:"粘粘",tagline:"悬停",detail:"反重力。两块粘粘一碰就立刻粘住、停在半空不再下落。"},[r.Life]:{name:"生命",tagline:"终极大招",detail:"全场最多5个。集齐5个并存活5回合，第6回合召唤远古生命清屏、给海量积分；被火/冰/电/消除摧毁则变砖土。每个自定义棋子最多放1个。"}},J=9;class xe{constructor(t,e){c(this,"root");c(this,"canvas");c(this,"ctx");c(this,"grid");c(this,"selected",r.Earth);c(this,"shelf",[]);c(this,"onChange");c(this,"cell",70);this.root=t,this.onChange=e,this.grid=Array.from({length:4},()=>Array(4).fill(null)),this.canvas=document.createElement("canvas"),this.canvas.width=this.cell*4,this.canvas.height=this.cell*4,this.canvas.className="ws-canvas",this.ctx=this.canvas.getContext("2d"),this.build(),this.draw()}currentCells(){const t=[];for(let e=0;e<4;e++)for(let s=0;s<4;s++){const n=this.grid[e][s];n!==null&&t.push({x:s,y:e,element:n})}return t}build(){this.root.innerHTML="";const t=document.createElement("div");t.className="ws-wrap";const e=document.createElement("div");e.className="ws-left";const s=document.createElement("h2");s.textContent="源力工坊";const n=document.createElement("p");n.className="ws-hint",n.textContent="4×4 画布 · 最多 4 块 · 每块至少一个角相连（可对角）",e.append(s,n,this.canvas);const a=document.createElement("div");a.className="ws-status",a.id="ws-status",e.append(a);const o=document.createElement("div");o.className="ws-btnrow";const l=ut("清空",()=>{this.grid=Array.from({length:4},()=>Array(4).fill(null)),this.draw()}),h=ut("⚒ 铸造入库",()=>this.cast());h.classList.add("primary"),o.append(l,h),e.append(o);const d=document.createElement("div");d.className="ws-right";const u=document.createElement("h3");u.textContent="元素调色盘",d.append(u);const m=document.createElement("div");m.className="ws-palette";for(const w of $t){const b=document.createElement("button");b.className="ws-swatch",b.style.backgroundColor=it[w],k[w]&&(b.style.backgroundImage="url("+k[w]+")"),b.style.backgroundSize="cover",b.title=st[w],b.textContent="",b.onclick=()=>{this.selected=w,this.refreshSwatches(m)},b.dataset.el=String(w),m.append(b)}d.append(m);const g=document.createElement("div");g.className="ws-element-desc",g.id="ws-element-desc",d.append(g);const Y=document.createElement("h3");Y.textContent=`陈列滚轴 (${this.shelf.length}/${J})`,Y.id="ws-shelf-title",d.append(Y);const X=document.createElement("div");X.className="ws-shelf",X.id="ws-shelf",d.append(X),t.append(e,d),this.root.append(t),this.refreshSwatches(m),this.renderShelf();const at=w=>{const b=this.canvas.getBoundingClientRect(),V=Math.floor((w.clientX-b.left)/b.width*4),G=Math.floor((w.clientY-b.top)/b.height*4);V<0||V>3||G<0||G>3||this.toggle(V,G)};this.canvas.addEventListener("mousedown",w=>at(w)),this.canvas.addEventListener("touchstart",w=>{w.preventDefault(),at(w.touches[0])})}refreshSwatches(t){t.querySelectorAll(".ws-swatch").forEach(e=>{const s=Number(e.dataset.el);e.classList.toggle("sel",s===this.selected)}),this.renderElementDesc()}renderElementDesc(){const t=document.getElementById("ws-element-desc");if(!t)return;const e=kt[this.selected];t.innerHTML=`<b>${e.name}</b><span>${e.tagline}</span><p>${e.detail}</p>`}toggle(t,e){this.grid[e][t]===this.selected?this.grid[e][t]=null:this.grid[e][t]!==null?this.grid[e][t]=this.selected:this.grid[e][t]=this.selected,this.draw()}draw(){const t=this.ctx;t.fillStyle="#0c0e14",t.fillRect(0,0,this.canvas.width,this.canvas.height),t.strokeStyle="rgba(255,255,255,0.08)";for(let e=0;e<=4;e++)t.beginPath(),t.moveTo(e*this.cell,0),t.lineTo(e*this.cell,4*this.cell),t.stroke(),t.beginPath(),t.moveTo(0,e*this.cell),t.lineTo(4*this.cell,e*this.cell),t.stroke();for(let e=0;e<4;e++)for(let s=0;s<4;s++){const n=this.grid[e][s];n!==null&&q(t,s*this.cell,e*this.cell,this.cell,{element:n,timer:-1,charged:!1})}this.updateStatus()}updateStatus(){const t=document.getElementById("ws-status");if(!t)return;const e=this.currentCells();if(e.length===0){t.textContent="放置方块开始设计",t.className="ws-status";return}const s=ot(e);s.ok?(t.textContent=`✓ 合法棋子（${e.length} 块）`,t.className="ws-status ok"):(t.textContent=`✗ ${s.reason}`,t.className="ws-status bad")}cast(){const t=this.currentCells(),e=ot(t);if(!e.ok){alert("无法铸造："+e.reason);return}if(this.shelf.length>=J){alert("陈列滚轴已满（9 枚），请先删除再新建");return}const s=P(`源力#${this.shelf.length+1}`,F(t));this.shelf.push(s),this.grid=Array.from({length:4},()=>Array(4).fill(null)),this.draw(),this.renderShelf(),this.onChange()}renderShelf(){const t=document.getElementById("ws-shelf"),e=document.getElementById("ws-shelf-title");e&&(e.textContent=`陈列滚轴 (${this.shelf.length}/${J})`),t&&(t.innerHTML="",this.shelf.forEach((s,n)=>{const a=document.createElement("div");a.className="ws-shelf-item";const o=document.createElement("canvas");o.width=64,o.height=64;const l=o.getContext("2d");l.fillStyle="#0c0e14",l.fillRect(0,0,64,64);const h=14;for(const m of s.cells)q(l,4+m.x*h,4+m.y*h,h,{element:m.element,timer:-1,charged:!1});const d=document.createElement("button");d.className="ws-del",d.textContent="✕",d.onclick=()=>{this.shelf.splice(n,1),this.renderShelf(),this.onChange()};const u=document.createElement("span");u.textContent=s.name,a.append(o,u,d),t.append(a)}))}getShelf(){return[...this.shelf]}}function ut(i,t){const e=document.createElement("button");return e.className="ws-btn",e.textContent=i,e.onclick=t,e}function Se(){return[P("孤角",[{x:0,y:0,element:r.Earth},{x:1,y:1,element:r.Earth}]),P("斜链",[{x:0,y:0,element:r.Earth},{x:1,y:1,element:r.Earth},{x:2,y:2,element:r.Earth}]),P("黏弹",[{x:0,y:0,element:r.Sticky},{x:1,y:1,element:r.Sticky}]),P("独子",[{x:0,y:0,element:r.Earth}]),P("火星",[{x:0,y:0,element:r.Fire},{x:1,y:1,element:r.Earth}])]}const Me=2,Le=2;function Ae(i,t){const e=[...i],s=[];if(t.selfBuff)for(let n=0;n<Me;n++)e.push(t.selfBuff);if(t.oppDebuff)for(let n=0;n<Le;n++)s.push(t.oppDebuff);return{selfExtra:e,oppExtra:s}}const Be=15;function Ce(i){const t=new Map;for(const s of i.cells)t.set(`${s.x},${s.y}`,s.element);const e=document.createElement("div");e.className="lo-mini";for(let s=0;s<4;s++)for(let n=0;n<4;n++){const a=t.get(`${n},${s}`),o=document.createElement("i");a!==void 0&&(o.style.background=it[a],o.title=st[a]),e.append(o)}return e}class Ie{constructor(t,e,s,n){c(this,"root");c(this,"shelf");c(this,"onDone");c(this,"onCancel");c(this,"selfBuff",null);c(this,"oppDebuff",null);c(this,"remain",Be);c(this,"timer");this.root=t,this.shelf=e,this.onDone=s,this.onCancel=n,this.build(),this.startCountdown()}selfOptions(){return[...this.shelf,...gt]}build(){this.root.innerHTML="";const t=document.createElement("div");t.className="loadout-wrap",t.innerHTML=`
+      <div class="w-forecast">预报: ${z[t.nextForecast]} ${Z[t.nextForecast]} <span class="w-warn">(可能不准)</span></div>`}destroy(){cancelAnimationFrame(this.raf),this.fallTimer&&clearInterval(this.fallTimer),this.matchTimer&&clearInterval(this.matchTimer),this._keyHandler&&window.removeEventListener("keydown",this._keyHandler)}}function Te(i){return i==="shared-turn"?"同屏回合制":i==="survival"?"生存竞技":"限时狂欢"}function ke(i){const t=[],e=new Map;for(const s of i.cells)e.set(`${s.x},${s.y}`,s.element);for(let s=0;s<4;s++)for(let n=0;n<4;n++){const a=e.get(`${n},${s}`),o=a?it[a]:"transparent";t.push(`<i style="background:${o}" title="${a?st[a]:""}"></i>`)}return`<div class="mini4">${t.join("")}</div>`}const kt={[r.Empty]:{name:"空",tagline:"",detail:""},[r.Earth]:{name:"砖土",tagline:"惰性基石",detail:"不参与任何反应，用来当地基和隔离带。"},[r.Fire]:{name:"火焰",tagline:"蔓延",detail:"与相邻木头反应，3回合后蔓延、烧掉木头变成新火；遇水则与水共同湮灭消失；雨天会熄灭。元素反应不得分。"},[r.Water]:{name:"水",tagline:"催生·爆破",detail:"让相邻木头上方长出新木（晴天长2格）；遇到带电金属立即触发3×3爆炸；雪天结成冰。"},[r.Wood]:{name:"木",tagline:"可燃·可生长",detail:"会被火点燃、被水催生。是火与水反应的核心载体。"},[r.Metal]:{name:"金属",tagline:"超重·导电",detail:"停在木头/冰上方3回合会压碎下方一层并整列下移；雷暴天带电，引爆相邻水、并把相邻生命退化成砖土。"},[r.Ice]:{name:"冰",tagline:"滑动",detail:"触底后会随机向左或向右滑到底；与水相邻3回合后自己化成水。"},[r.Sticky]:{name:"粘粘",tagline:"悬停",detail:"反重力。两块粘粘一碰就立刻粘住、停在半空不再下落。"},[r.Life]:{name:"生命",tagline:"终极大招",detail:"全场最多5个。集齐5个并存活5回合，第6回合召唤远古生命清屏、给海量积分；被火/冰/电/消除摧毁则变砖土。每个自定义棋子最多放1个。"}},J=9;class xe{constructor(t,e){c(this,"root");c(this,"canvas");c(this,"ctx");c(this,"grid");c(this,"selected",r.Earth);c(this,"shelf",[]);c(this,"onChange");c(this,"cell",70);this.root=t,this.onChange=e,this.grid=Array.from({length:4},()=>Array(4).fill(null)),this.canvas=document.createElement("canvas"),this.canvas.width=this.cell*4,this.canvas.height=this.cell*4,this.canvas.className="ws-canvas",this.ctx=this.canvas.getContext("2d"),this.build(),this.draw()}currentCells(){const t=[];for(let e=0;e<4;e++)for(let s=0;s<4;s++){const n=this.grid[e][s];n!==null&&t.push({x:s,y:e,element:n})}return t}build(){this.root.innerHTML="";const t=document.createElement("div");t.className="ws-wrap";const e=document.createElement("div");e.className="ws-left";const s=document.createElement("h2");s.textContent="源力工坊";const n=document.createElement("p");n.className="ws-hint",n.textContent="4×4 画布 · 最多 4 块 · 每块至少一个角相连（可对角）",e.append(s,n,this.canvas);const a=document.createElement("div");a.className="ws-status",a.id="ws-status",e.append(a);const o=document.createElement("div");o.className="ws-btnrow";const l=ut("清空",()=>{this.grid=Array.from({length:4},()=>Array(4).fill(null)),this.draw()}),h=ut("⚒ 铸造入库",()=>this.cast());h.classList.add("primary"),o.append(l,h),e.append(o);const d=document.createElement("div");d.className="ws-right";const u=document.createElement("h3");u.textContent="元素调色盘",d.append(u);const m=document.createElement("div");m.className="ws-palette";for(const w of $t){const b=document.createElement("button");b.className="ws-swatch",b.style.backgroundColor=it[w],k[w]&&(b.style.backgroundImage="url("+k[w]+")"),b.style.backgroundSize="cover",b.title=st[w],b.textContent="",b.onclick=()=>{this.selected=w,this.refreshSwatches(m)},b.dataset.el=String(w),m.append(b)}d.append(m);const g=document.createElement("div");g.className="ws-element-desc",g.id="ws-element-desc",d.append(g);const Y=document.createElement("h3");Y.textContent=`陈列滚轴 (${this.shelf.length}/${J})`,Y.id="ws-shelf-title",d.append(Y);const X=document.createElement("div");X.className="ws-shelf",X.id="ws-shelf",d.append(X),t.append(e,d),this.root.append(t),this.refreshSwatches(m),this.renderShelf();const at=w=>{const b=this.canvas.getBoundingClientRect(),V=Math.floor((w.clientX-b.left)/b.width*4),G=Math.floor((w.clientY-b.top)/b.height*4);V<0||V>3||G<0||G>3||this.toggle(V,G)};this.canvas.addEventListener("mousedown",w=>at(w)),this.canvas.addEventListener("touchstart",w=>{w.preventDefault(),at(w.touches[0])})}refreshSwatches(t){t.querySelectorAll(".ws-swatch").forEach(e=>{const s=Number(e.dataset.el);e.classList.toggle("sel",s===this.selected)}),this.renderElementDesc()}renderElementDesc(){const t=document.getElementById("ws-element-desc");if(!t)return;const e=kt[this.selected];t.innerHTML=`<b>${e.name}</b><span>${e.tagline}</span><p>${e.detail}</p>`}toggle(t,e){this.grid[e][t]===this.selected?this.grid[e][t]=null:this.grid[e][t]!==null?this.grid[e][t]=this.selected:this.grid[e][t]=this.selected,this.draw()}draw(){const t=this.ctx;t.fillStyle="#0c0e14",t.fillRect(0,0,this.canvas.width,this.canvas.height),t.strokeStyle="rgba(255,255,255,0.08)";for(let e=0;e<=4;e++)t.beginPath(),t.moveTo(e*this.cell,0),t.lineTo(e*this.cell,4*this.cell),t.stroke(),t.beginPath(),t.moveTo(0,e*this.cell),t.lineTo(4*this.cell,e*this.cell),t.stroke();for(let e=0;e<4;e++)for(let s=0;s<4;s++){const n=this.grid[e][s];n!==null&&q(t,s*this.cell,e*this.cell,this.cell,{element:n,timer:-1,charged:!1})}this.updateStatus()}updateStatus(){const t=document.getElementById("ws-status");if(!t)return;const e=this.currentCells();if(e.length===0){t.textContent="放置方块开始设计",t.className="ws-status";return}const s=ot(e);s.ok?(t.textContent=`✓ 合法棋子（${e.length} 块）`,t.className="ws-status ok"):(t.textContent=`✗ ${s.reason}`,t.className="ws-status bad")}cast(){const t=this.currentCells(),e=ot(t);if(!e.ok){alert("无法铸造："+e.reason);return}if(this.shelf.length>=J){alert("陈列滚轴已满（9 枚），请先删除再新建");return}const s=P(`源力#${this.shelf.length+1}`,F(t));this.shelf.push(s),this.grid=Array.from({length:4},()=>Array(4).fill(null)),this.draw(),this.renderShelf(),this.onChange()}renderShelf(){const t=document.getElementById("ws-shelf"),e=document.getElementById("ws-shelf-title");e&&(e.textContent=`陈列滚轴 (${this.shelf.length}/${J})`),t&&(t.innerHTML="",this.shelf.forEach((s,n)=>{const a=document.createElement("div");a.className="ws-shelf-item";const o=document.createElement("canvas");o.width=64,o.height=64;const l=o.getContext("2d");l.fillStyle="#0c0e14",l.fillRect(0,0,64,64);const h=14;for(const m of s.cells)q(l,4+m.x*h,4+m.y*h,h,{element:m.element,timer:-1,charged:!1});const d=document.createElement("button");d.className="ws-del",d.textContent="✕",d.onclick=()=>{this.shelf.splice(n,1),this.renderShelf(),this.onChange()};const u=document.createElement("span");u.textContent=s.name,a.append(o,u,d),t.append(a)}))}getShelf(){return[...this.shelf]}}function ut(i,t){const e=document.createElement("button");return e.className="ws-btn",e.textContent=i,e.onclick=t,e}function Se(){return[P("孤角",[{x:0,y:0,element:r.Earth},{x:1,y:1,element:r.Earth}]),P("斜链",[{x:0,y:0,element:r.Earth},{x:1,y:1,element:r.Earth},{x:2,y:2,element:r.Earth}]),P("黏弹",[{x:0,y:0,element:r.Sticky},{x:1,y:1,element:r.Sticky}]),P("独子",[{x:0,y:0,element:r.Earth}]),P("火星",[{x:0,y:0,element:r.Fire},{x:1,y:1,element:r.Earth}])]}const Me=1,Le=1;function Ae(i,t){const e=[],s=[];if(t.selfBuff)for(let n=0;n<Me;n++)e.push(t.selfBuff);if(t.oppDebuff)for(let n=0;n<Le;n++)s.push(t.oppDebuff);return{selfExtra:e,oppExtra:s}}function buildAiLoadoutExtras(i){const t=Se(),e=t[Math.floor(Math.random()*t.length)],s=gt[Math.floor(Math.random()*gt.length)];return{playerExtra:[...i.selfExtra,e],aiExtra:[...i.oppExtra,s]}}const Be=15;function Ce(i){const t=new Map;for(const s of i.cells)t.set(`${s.x},${s.y}`,s.element);const e=document.createElement("div");e.className="lo-mini";for(let s=0;s<4;s++)for(let n=0;n<4;n++){const a=t.get(`${n},${s}`),o=document.createElement("i");a!==void 0&&(o.style.background=it[a],o.title=st[a]),e.append(o)}return e}class Ie{constructor(t,e,s,n){c(this,"root");c(this,"shelf");c(this,"onDone");c(this,"onCancel");c(this,"selfBuff",null);c(this,"oppDebuff",null);c(this,"remain",Be);c(this,"timer");this.root=t,this.shelf=e,this.onDone=s,this.onCancel=n,this.build(),this.startCountdown()}selfOptions(){return[...this.shelf,...gt]}build(){this.root.innerHTML="";const t=document.createElement("div");t.className="loadout-wrap",t.innerHTML=`
       <div class="lo-top">
         <button class="btn-exit" id="lo-exit">‹ 取消</button>
         <div class="lo-title">赛前暗牌博弈</div>
         <div class="lo-timer" id="lo-timer">${this.remain}s</div>
       </div>
-      <p class="lo-sub">15 秒内下注：给自己加一枚顺手棋子（Buff），给对手塞一枚刁钻棋子（Debuff）。超时按当前选择开战。</p>
+      <p class="lo-sub">15 秒内选择两枚源块：一枚混入自己的掉落池，一枚投放进对手掉落池。自定义源块只以低概率混入，基础棋子仍然是主牌池。</p>
       <div class="lo-cols">
         <div class="lo-col buff">
-          <h3>🟢 给自己 · Buff</h3>
+          <h3>🟢 自用源块</h3>
           <div class="lo-list" id="lo-self"></div>
         </div>
         <div class="lo-col debuff">
-          <h3>🔴 给对手 · Debuff</h3>
+          <h3>🔴 投放给对手</h3>
           <div class="lo-list" id="lo-opp"></div>
         </div>
       </div>
-      <button class="lo-go" id="lo-go">⚔ 开战</button>`,this.root.append(t);const e=t.querySelector("#lo-self");this.selfOptions().forEach(n=>{e.append(this.optionCard(n,"self"))});const s=t.querySelector("#lo-opp");[...this.shelf,...Se()].forEach(n=>{s.append(this.optionCard(n,"opp"))}),t.querySelector("#lo-exit").addEventListener("click",()=>{this.cleanup(),this.onCancel()}),t.querySelector("#lo-go").addEventListener("click",()=>this.confirm())}optionCard(t,e){const s=document.createElement("button");s.className="lo-card",s.append(Ce(t));const n=document.createElement("span");return n.textContent=t.name,s.append(n),s.addEventListener("click",()=>{e==="self"?this.selfBuff=this.selfBuff?.id===t.id?null:t:this.oppDebuff=this.oppDebuff?.id===t.id?null:t,this.refreshSelection()}),s.dataset.pid=t.id,s.dataset.side=e,s}refreshSelection(){this.root.querySelectorAll(".lo-card").forEach(t=>{const e=t,s=e.dataset.side==="self"&&this.selfBuff?.id===e.dataset.pid||e.dataset.side==="opp"&&this.oppDebuff?.id===e.dataset.pid;e.classList.toggle("sel",!!s)})}startCountdown(){this.timer=setInterval(()=>{this.remain--;const t=document.getElementById("lo-timer");t&&(t.textContent=`${this.remain}s`),this.remain<=0&&this.confirm()},1e3)}confirm(){this.cleanup(),this.onDone({choice:{selfBuff:this.selfBuff,oppDebuff:this.oppDebuff}})}cleanup(){this.timer&&clearInterval(this.timer),this.timer=void 0}}class Pe{constructor(t,e){c(this,"ws");c(this,"handlers",{});c(this,"pingTimer",null);const s=e??globalThis.WebSocket;this.ws=new s(t),this.ws.onopen=()=>{this.startPing(),this.handlers.open?.()},this.ws.onmessage=n=>this.onMessage(String(n.data)),this.ws.onclose=()=>{this.stopPing(),this.handlers.close?.()},this.ws.onerror=()=>this.handlers.error?.("WS_ERROR","连接错误")}on(t,e){this.handlers[t]=e}onMessage(t){let e;try{e=JSON.parse(t)}catch{return}switch(e.type){case"matchFound":this.handlers.matchFound?.(e);break;case"turn":this.handlers.turn?.(e);break;case"opponentLeft":this.handlers.opponentLeft?.();break;case"error":this.handlers.error?.(e.code,e.message);break}}send(t){this.ws.send(JSON.stringify(t))}queue(t,e){const s=window.SuperCubeAccount?.token?.();this.send({type:"queue",name:t,bag:e,accountToken:s||void 0})}cancelQueue(){this.send({type:"cancelQueue"})}sendTurn(t,e,s){this.send({type:"turn",matchId:t,turnIndex:e,move:s})}leave(t){this.send({type:"leave",matchId:t})}startPing(){this.pingTimer=setInterval(()=>this.send({type:"ping",t:Date.now()}),5e3)}stopPing(){this.pingTimer&&clearInterval(this.pingTimer),this.pingTimer=null}close(){this.stopPing(),this.ws.close()}}function $e(i,t){for(let e=0;e<t.rotation;e++)i.rotate();if(i.active){const e=t.px-i.active.px,s=e>0?1:-1;for(let n=0;n<Math.abs(e)&&i.move(s);n++);}return i.commitTurn()}function Re(i){return{id:i.id,name:i.name,custom:i.custom,cells:i.cells.map(t=>({x:t.x,y:t.y,element:t.element}))}}class Ne{constructor(t,e){c(this,"root");c(this,"opts");c(this,"client");c(this,"game",null);c(this,"mySide","A");c(this,"matchId","");c(this,"canvas");c(this,"ctx");c(this,"cell",28);c(this,"raf",0);c(this,"rotations",0);c(this,"fallTimer");c(this,"lockPending",!1);c(this,"resultShown",!1);c(this,"flashes",[]);c(this,"touch",{active:!1,sx:0,sy:0,lx:0,ly:0,startPx:0,lock:""});c(this,"oppName","对手");c(this,"_key");c(this,"loop",()=>{this.game&&this.render(),this.raf=requestAnimationFrame(this.loop)});this.root=t,this.opts=e,this.showStatus("正在连接服务器…"),this.client=new Pe(e.serverUrl),this.client.on("open",()=>{this.showStatus("匹配中…（等待对手）"),this.client.queue(e.name,e.playerBag.map(Re))}),this.client.on("error",(s,n)=>this.showStatus(`连接失败：${n}。请检查网络后重试。`,!0)),this.client.on("close",()=>{this.game||this.showStatus("连接已断开。",!0)}),this.client.on("matchFound",s=>this.onMatchFound(s)),this.client.on("turn",s=>this.onRemoteTurn(s.by,s.move)),this.client.on("opponentLeft",()=>this.endMatch("对手已离开，你获胜！"))}showStatus(t,e=!1){this.root.innerHTML=`
+      <button class="lo-go" id="lo-go">⚔ 开战</button>`,this.root.append(t);const e=t.querySelector("#lo-self");this.selfOptions().forEach(n=>{e.append(this.optionCard(n,"self"))});const s=t.querySelector("#lo-opp");[...this.shelf,...Se()].forEach(n=>{s.append(this.optionCard(n,"opp"))}),t.querySelector("#lo-exit").addEventListener("click",()=>{this.cleanup(),this.onCancel()}),t.querySelector("#lo-go").addEventListener("click",()=>this.confirm())}optionCard(t,e){const s=document.createElement("button");s.className="lo-card",s.append(Ce(t));const n=document.createElement("span");return n.textContent=t.name,s.append(n),s.addEventListener("click",()=>{e==="self"?this.selfBuff=this.selfBuff?.id===t.id?null:t:this.oppDebuff=this.oppDebuff?.id===t.id?null:t,this.refreshSelection()}),s.dataset.pid=t.id,s.dataset.side=e,s}refreshSelection(){this.root.querySelectorAll(".lo-card").forEach(t=>{const e=t,s=e.dataset.side==="self"&&this.selfBuff?.id===e.dataset.pid||e.dataset.side==="opp"&&this.oppDebuff?.id===e.dataset.pid;e.classList.toggle("sel",!!s)})}startCountdown(){this.timer=setInterval(()=>{this.remain--;const t=document.getElementById("lo-timer");t&&(t.textContent=`${this.remain}s`),this.remain<=0&&this.confirm()},1e3)}confirm(){this.cleanup(),this.onDone({choice:{selfBuff:this.selfBuff,oppDebuff:this.oppDebuff}})}cleanup(){this.timer&&clearInterval(this.timer),this.timer=void 0}}class Pe{constructor(t,e){c(this,"ws");c(this,"handlers",{});c(this,"pingTimer",null);const s=e??globalThis.WebSocket;this.ws=new s(t),this.ws.onopen=()=>{this.startPing(),this.handlers.open?.()},this.ws.onmessage=n=>this.onMessage(String(n.data)),this.ws.onclose=()=>{this.stopPing(),this.handlers.close?.()},this.ws.onerror=()=>this.handlers.error?.("WS_ERROR","连接错误")}on(t,e){this.handlers[t]=e}onMessage(t){let e;try{e=JSON.parse(t)}catch{return}switch(e.type){case"matchFound":this.handlers.matchFound?.(e);break;case"turn":this.handlers.turn?.(e);break;case"opponentLeft":this.handlers.opponentLeft?.();break;case"error":this.handlers.error?.(e.code,e.message);break}}send(t){this.ws.send(JSON.stringify(t))}queue(t,e,s=[]){const n=window.SuperCubeAccount?.token?.();this.send({type:"queue",name:t,bag:e,selfBag:e,oppBag:s,accountToken:n||void 0})}cancelQueue(){this.send({type:"cancelQueue"})}sendTurn(t,e,s){this.send({type:"turn",matchId:t,turnIndex:e,move:s})}leave(t){this.send({type:"leave",matchId:t})}startPing(){this.pingTimer=setInterval(()=>this.send({type:"ping",t:Date.now()}),5e3)}stopPing(){this.pingTimer&&clearInterval(this.pingTimer),this.pingTimer=null}close(){this.stopPing(),this.ws.close()}}function $e(i,t){for(let e=0;e<t.rotation;e++)i.rotate();if(i.active){const e=t.px-i.active.px,s=e>0?1:-1;for(let n=0;n<Math.abs(e)&&i.move(s);n++);}return i.commitTurn()}function Re(i){return{id:i.id,name:i.name,custom:i.custom,cells:i.cells.map(t=>({x:t.x,y:t.y,element:t.element}))}}class Ne{constructor(t,e){c(this,"root");c(this,"opts");c(this,"client");c(this,"game",null);c(this,"mySide","A");c(this,"matchId","");c(this,"canvas");c(this,"ctx");c(this,"cell",28);c(this,"raf",0);c(this,"rotations",0);c(this,"fallTimer");c(this,"lockPending",!1);c(this,"resultShown",!1);c(this,"flashes",[]);c(this,"touch",{active:!1,sx:0,sy:0,lx:0,ly:0,startPx:0,lock:""});c(this,"oppName","对手");c(this,"_key");c(this,"loop",()=>{this.game&&this.render(),this.raf=requestAnimationFrame(this.loop)});this.root=t,this.opts=e,this.showStatus("正在连接服务器…"),this.client=new Pe(e.serverUrl),this.client.on("open",()=>{this.showStatus("匹配中…（等待对手）"),this.client.queue(e.name,(e.selfBag??e.playerBag).map(Re),(e.oppBag??[]).map(Re))}),this.client.on("error",(s,n)=>this.showStatus(`连接失败：${n}。请检查网络后重试。`,!0)),this.client.on("close",()=>{this.game||this.showStatus("连接已断开。",!0)}),this.client.on("matchFound",s=>this.onMatchFound(s)),this.client.on("turn",s=>this.onRemoteTurn(s.by,s.move)),this.client.on("opponentLeft",()=>this.endMatch("对手已离开，你获胜！"))}showStatus(t,e=!1){this.root.innerHTML=`
       <div class="ob-status">
         <button class="btn-exit" id="ob-back">‹ 大厅</button>
         <div class="ob-spinner ${e?"err":""}"></div>
@@ -185,7 +185,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       <button class="tool-btn" id="m-workshop" title="源块锻造"><span class="tool-ico">✦</span><small>锻造</small></button>
       <button class="tool-btn" id="m-tutorial" title="源界教程"><span class="tool-ico">📜</span><small>教程</small></button>
       <button class="tool-btn" id="m-settings" title="系统设置"><span class="tool-ico">⚙</span><small>设置</small></button>
-    </div>`,x.append(i);let t="pvp";const e=i.querySelector(".lobby-diff"),s=document.getElementById("lobby-start"),n=a=>{t=a,i.querySelectorAll(".battle-modes .mode-tile").forEach(o=>{o.classList.toggle("sel",o.dataset.mode===a)}),e.hidden=a==="online",s.innerHTML=a==="online"?'<span class="pb-icon">🌐</span> 开始匹配':'<span class="pb-icon">▶</span> 开始'};i.querySelectorAll(".battle-modes .mode-tile").forEach(a=>{a.onclick=()=>n(a.dataset.mode)}),s.onclick=()=>{t==="pvp"?_e("shared-turn"):t==="online"?Ue():et(t==="survival"?"survival":"time-attack")},document.getElementById("m-workshop").onclick=()=>qe(),document.getElementById("m-settings").onclick=()=>{L(),new we(x,I)},document.getElementById("m-tutorial").onclick=()=>{Bt()},i.querySelectorAll(".lobby-diff button").forEach(a=>{a.onclick=()=>{At=a.dataset.d,i.querySelectorAll(".lobby-diff button").forEach(o=>o.classList.remove("sel")),a.classList.add("sel")}})}function Bt(){L(),new De(x,{onBack:I,onStart:Ct})}function Ct(i){L(),H=new He(x,i,{onExit:Bt,onNext:Ct})}function _e(i){L(),new Ie(x,C,t=>{const{selfExtra:e,oppExtra:s}=Ae(C,t.choice);et(i,e,s)},I)}function Ue(){window.SuperCubeAccount?.ensure?.();const i="wss://match.supercubegame.com",t=window.SuperCubeAccount?.displayName?.()||"玩家";y.serverUrl=i,W(),L(),new Ne(x,{serverUrl:i,name:t,playerBag:C,onExit:I})}function et(i,t,e){L(),D=new Ee(x,{mode:i,difficulty:At,playerBag:t??C,aiBag:e,onExit:I})}function qe(){L();const i=document.createElement("button");i.className="ws-back",i.textContent="‹ 返回大厅",i.onclick=I,x.append(i);const t=document.createElement("div");x.append(t),O=new xe(t,()=>{C=O.getShelf()}),C.length&&(O.shelf=[...C],O.renderShelf?.())}me();new We(x,()=>{I(),Fe()||new St(()=>{})});
+    </div>`,x.append(i);let t="pvp";const e=i.querySelector(".lobby-diff"),s=document.getElementById("lobby-start"),n=a=>{t=a,i.querySelectorAll(".battle-modes .mode-tile").forEach(o=>{o.classList.toggle("sel",o.dataset.mode===a)}),e.hidden=a==="online",s.innerHTML=a==="online"?'<span class="pb-icon">🌐</span> 开始匹配':'<span class="pb-icon">▶</span> 开始'};i.querySelectorAll(".battle-modes .mode-tile").forEach(a=>{a.onclick=()=>n(a.dataset.mode)}),s.onclick=()=>{t==="pvp"?_e("shared-turn"):t==="online"?Ue():et(t==="survival"?"survival":"time-attack")},document.getElementById("m-workshop").onclick=()=>qe(),document.getElementById("m-settings").onclick=()=>{L(),new we(x,I)},document.getElementById("m-tutorial").onclick=()=>{Bt()},i.querySelectorAll(".lobby-diff button").forEach(a=>{a.onclick=()=>{At=a.dataset.d,i.querySelectorAll(".lobby-diff button").forEach(o=>o.classList.remove("sel")),a.classList.add("sel")}})}function Bt(){L(),new De(x,{onBack:I,onStart:Ct})}function Ct(i){L(),H=new He(x,i,{onExit:Bt,onNext:Ct})}function _e(i){L(),new Ie(x,C,t=>{const e=Ae(C,t.choice),s=buildAiLoadoutExtras(e);et(i,s.playerExtra,s.aiExtra)},I)}function Ue(i=[],t=[]){window.SuperCubeAccount?.ensure?.();const e="wss://match.supercubegame.com",s=window.SuperCubeAccount?.displayName?.()||"玩家";y.serverUrl=e,W(),L(),new Ne(x,{serverUrl:e,name:s,playerBag:i,selfBag:i,oppBag:t,onExit:I})}function et(i,t,e){L(),D=new Ee(x,{mode:i,difficulty:At,playerBag:t??C,aiBag:e,onExit:I})}function qe(){L();const i=document.createElement("button");i.className="ws-back",i.textContent="‹ 返回大厅",i.onclick=I,x.append(i);const t=document.createElement("div");x.append(t),O=new xe(t,()=>{C=O.getShelf()}),C.length&&(O.shelf=[...C],O.renderShelf?.())}me();new We(x,()=>{I(),Fe()||new St(()=>{})});
 
 </script>
 <script>
@@ -2225,116 +2225,58 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 <style>
 .realm-lobby {
   min-height: 100vh;
-  padding: 12px 16px 18px;
-  display: flex;
-  flex-direction: column;
+  min-height: 100dvh;
+  padding: calc(12px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
   gap: 10px;
   overflow-y: auto;
 }
 
 .realm-lobby .lobby-hero {
   padding: 2px 0 0;
+  gap: 4px;
 }
 
-.realm-zone-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
+.realm-zones {
+  grid-template-columns: repeat(3, 1fr);
 }
 
-.realm-zone-card {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px 13px;
-  align-items: center;
-  width: 100%;
-  padding: 15px 15px 14px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 18px;
-  color: var(--text);
-  background: linear-gradient(135deg, rgba(28,33,48,.72), rgba(14,18,29,.82));
-  text-align: left;
-  box-shadow: 0 12px 26px rgba(0,0,0,.2);
-  min-height: 94px;
+.realm-zones .mode-tile {
+  min-height: 74px;
 }
 
-.realm-zone-card::before {
-  content: "";
-  position: absolute;
-  inset: auto -18% -62% 20%;
-  height: 110px;
-  border-radius: 50%;
-  background: rgba(90,168,255,.18);
-  filter: blur(24px);
-  opacity: .66;
+.realm-mode-row {
+  grid-template-columns: repeat(3, 1fr);
 }
 
-.realm-zone-card[data-zone="training"]::before { background: rgba(255,210,95,.2); }
-.realm-zone-card[data-zone="battlefield"]::before { background: rgba(87,210,255,.24); }
-.realm-zone-card[data-zone="rift"]::before { background: rgba(199,125,255,.22); }
-
-.realm-zone-card > * {
-  position: relative;
+.realm-mode-row .mode-tile {
+  min-height: 66px;
 }
 
-.realm-zone-card.sel {
-  border-color: rgba(119,201,255,.82);
-  background: linear-gradient(135deg, rgba(32,73,116,.84), rgba(30,37,62,.86));
-  box-shadow: 0 0 0 1px rgba(119,201,255,.12), 0 16px 34px rgba(54,163,255,.22);
+.mode-art {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 6px 14px rgba(0,0,0,.3);
 }
 
-.realm-zone-icon {
-  grid-row: 1 / 3;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  background: rgba(255,255,255,.1);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
-}
-
-.realm-zone-title {
-  font-size: 18px;
-  font-weight: 950;
-  line-height: 1.18;
-}
-
-.realm-zone-sub {
-  color: rgba(230,235,242,.64);
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.realm-zone-kicker {
-  grid-column: 2;
-  justify-self: start;
-  border-radius: 999px;
-  padding: 4px 9px;
-  color: rgba(235,246,255,.82);
-  background: rgba(255,255,255,.08);
-  font-size: 10px;
-  font-weight: 900;
-}
-
-.realm-mode-panel {
+.realm-subpanel {
   display: flex;
   flex-direction: column;
   gap: 9px;
   padding: 12px;
-  border: 1px solid rgba(255,255,255,.07);
   border-radius: 16px;
-  background: rgba(15,19,30,.58);
+  background: rgba(20,24,35,.62);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.07);
+  box-shadow: 0 6px 24px rgba(0,0,0,.24);
 }
 
 .realm-mode-panel-head {
   display: flex;
-  align-items: baseline;
   justify-content: space-between;
+  align-items: baseline;
   gap: 10px;
 }
 
@@ -2347,66 +2289,28 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   font-size: 11px;
 }
 
-.realm-mode-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.realm-mode-card {
-  min-height: 82px;
-  padding: 10px 8px;
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: 14px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 4px;
-  color: var(--text);
-  background: rgba(28,33,48,.7);
-  text-align: left;
-}
-
-.realm-mode-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 10px;
-  margin-bottom: 2px;
-  background: rgba(255,255,255,.08);
-  font-size: 17px;
-}
-
-.realm-mode-card.sel {
-  border-color: rgba(255,210,95,.74);
-  background: linear-gradient(140deg, rgba(63,58,35,.74), rgba(24,58,86,.72));
-}
-
-.realm-mode-card[aria-disabled="true"] {
-  opacity: .55;
-}
-
-.realm-mode-card strong {
-  font-size: 13px;
-}
-
-.realm-mode-card small {
-  color: rgba(230,235,242,.62);
-  font-size: 10px;
-  line-height: 1.35;
-}
-
 .realm-mode-desc {
-  min-height: 48px;
+  min-height: 42px;
   padding: 10px 12px;
   border-radius: 14px;
   color: rgba(230,235,242,.76);
   background: rgba(90,168,255,.09);
   border: 1px solid rgba(90,168,255,.14);
   font-size: 12px;
-  line-height: 1.55;
+  line-height: 1.5;
+}
+
+.realm-lobby.rift-selected .realm-mode-row,
+.realm-lobby.rift-selected .lobby-diff {
+  display: none;
+}
+
+.realm-lobby .lobby-diff {
+  margin-top: -1px;
+}
+
+.realm-lobby .play-btn {
+  flex: 0 0 auto;
 }
 
 .realm-toast {
@@ -2491,22 +2395,57 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   border-color: rgba(119,201,255,.5);
 }
 
-@media (min-width: 560px) {
-  .realm-zone-grid {
-    grid-template-columns: repeat(3, 1fr);
+@media (max-height: 740px) {
+  .realm-lobby {
+    gap: 8px;
+    padding-top: calc(8px + env(safe-area-inset-top));
   }
 
-  .realm-zone-card {
-    min-height: 132px;
-    grid-template-columns: 1fr;
+  .realm-lobby .lobby-hero {
+    gap: 2px;
   }
 
-  .realm-zone-icon {
-    grid-row: auto;
+  .realm-lobby .hero-cube {
+    grid-template-columns: repeat(2, 32px);
+    grid-template-rows: repeat(2, 32px);
   }
 
-  .realm-zone-kicker {
-    grid-column: auto;
+  .realm-lobby .hero-cube img {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .realm-lobby .logo {
+    font-size: 31px;
+  }
+
+  .realm-lobby .tagline {
+    font-size: 11px;
+  }
+
+  .realm-zones .mode-tile,
+  .realm-mode-row .mode-tile {
+    min-height: 60px;
+    padding: 8px 4px;
+  }
+
+  .realm-mode-desc {
+    min-height: 36px;
+    max-height: 48px;
+    overflow: hidden;
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+
+  .realm-subpanel {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .realm-lobby .play-btn {
+    padding: 13px;
+    font-size: 18px;
   }
 }
 </style>
@@ -2564,6 +2503,41 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     try { return k?.[el] || ""; } catch { return ""; }
   }
 
+  function uiFeedback(kind = "tap") {
+    try {
+      f?.resume?.();
+      if (kind === "primary") f?.drop?.();
+      else f?.move?.();
+    } catch {}
+  }
+
+  const zoneArts = {
+    training: [r.Earth, r.Fire, r.Water, r.Wood],
+    battlefield: [r.Fire, r.Metal, r.Water, r.Ice],
+    rift: [r.Life, r.Sticky, r.Ice, r.Metal]
+  };
+
+  const zoneSigils = {
+    training: "训",
+    battlefield: "战",
+    rift: "乱"
+  };
+
+  const modeArts = {
+    assault: r.Fire,
+    survival: r.Metal,
+    frenzy: r.Life
+  };
+
+  function zoneIconHtml(key) {
+    const imgs = (zoneArts[key] || []).map((el) => `<img src="${art(el)}" alt="">`).join("");
+    return `${imgs}<span class="realm-sigil">${zoneSigils[key] || ""}</span>`;
+  }
+
+  function modeIconHtml(key) {
+    return `<img src="${art(modeArts[key])}" alt="">`;
+  }
+
   function showNotice(title, body) {
     document.querySelector(".realm-toast")?.remove();
     const overlay = document.createElement("div");
@@ -2589,9 +2563,9 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       if (message.type === "queued") return this.handlers.queued?.(message);
       return originalOnMessage.call(this, text);
     };
-    Pe.prototype.queueMode = function queueMode(name, bag, gameMode) {
+    Pe.prototype.queueMode = function queueMode(name, selfBag, gameMode, oppBag = []) {
       const token = window.SuperCubeAccount?.token?.();
-      this.send({ type: "queue", name, bag, gameMode, accountToken: token || void 0 });
+      this.send({ type: "queue", name, bag: selfBag, selfBag, oppBag, gameMode, accountToken: token || void 0 });
     };
     Pe.prototype.finish = function finish(matchId, score) {
       this.send({ type: "finish", matchId, score });
@@ -2635,7 +2609,7 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       this.client = new Pe(opts.serverUrl);
       this.client.on("open", () => {
         this.showStatus(`匹配中…（${modes[this.opts.gameMode].title}）`);
-        this.client.queueMode(opts.name, opts.playerBag.map(Re), opts.gameMode);
+        this.client.queueMode(opts.name, (opts.selfBag || opts.playerBag).map(Re), opts.gameMode, (opts.oppBag || []).map(Re));
       });
       this.client.on("error", (code, message) => this.showStatus(`连接失败：${message || code}。请检查网络后重试。`, true));
       this.client.on("close", () => {
@@ -2666,10 +2640,17 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
       this.matchId = match.matchId;
       this.oppName = match.opponent.name;
       const sideSeed = (match.seed + (this.mySide === "A" ? 101 : 202)) >>> 0;
+      const toPieces = (bag = []) => bag.map((piece) => ({
+        id: piece.id,
+        name: piece.name,
+        custom: piece.custom,
+        cells: piece.cells.map((cell) => ({ x: cell.x, y: cell.y, element: cell.element }))
+      }));
+      const localBag = toPieces(match.bags?.[this.mySide] || []);
       this.game = new U({
         seed: sideSeed,
         mode: this.engineMode(),
-        customBagA: this.opts.playerBag
+        customBagA: localBag
       });
       this.buildBoard();
       this.loop();
@@ -3006,14 +2987,20 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   }
 
   function runBattlefield(mode) {
-    if (mode === "assault") return Ue();
     window.SuperCubeAccount?.ensure?.();
     const serverUrl = "wss://match.supercubegame.com";
     const name = window.SuperCubeAccount?.displayName?.() || "玩家";
-    y.serverUrl = serverUrl;
-    W();
+    const launch = (bags) => {
+      y.serverUrl = serverUrl;
+      W();
+      L();
+      if (mode === "assault") {
+        return new Ne(x, { serverUrl, name, playerBag: bags.selfExtra, selfBag: bags.selfExtra, oppBag: bags.oppExtra, onExit: I });
+      }
+      return new RealmOnlineRace(x, { serverUrl, name, playerBag: bags.selfExtra, selfBag: bags.selfExtra, oppBag: bags.oppExtra, gameMode: mode, onExit: I });
+    };
     L();
-    new RealmOnlineRace(x, { serverUrl, name, playerBag: C, gameMode: mode, onExit: I });
+    new Ie(x, C, (result) => launch(Ae(C, result.choice)), I);
   }
 
   function runRift() {
@@ -3025,9 +3012,9 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
 
   function updateToolButtons() {
     const tools = [
-      ["m-workshop", '<span class="tool-ico">✦</span><small>锻造</small>', "源块锻造"],
-      ["m-tutorial", '<span class="tool-ico">📜</span><small>教程</small>', "源界教程"],
-      ["m-settings", '<span class="tool-ico">⚙</span><small>设置</small>', "系统设置"]
+      ["m-workshop", "⚒️", "源块锻造"],
+      ["m-tutorial", "📖", "源界教程"],
+      ["m-settings", "⚙️", "系统设置"]
     ];
     for (const [id, html, title] of tools) {
       const button = document.getElementById(id);
@@ -3056,40 +3043,35 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
           <img src="${art(r.Fire)}" alt=""><img src="${art(r.Water)}" alt="">
           <img src="${art(r.Wood)}" alt=""><img src="${art(r.Life)}" alt="">
         </div>
-        <h1 class="logo">源界中枢</h1>
-        <p class="tagline">训练 · 战场 · 乱流</p>
+        <h1 class="logo">SUPER<span>CUBE</span></h1>
+        <p class="tagline">源界中枢 · 训练 · 战场 · 乱流</p>
       </div>
-      <div class="realm-zone-grid">
+      <div class="mode-row battle-modes realm-zones">
         ${Object.entries(zones).map(([key, zone]) => `
-          <button class="realm-zone-card" type="button" data-zone="${key}">
-            <span class="realm-zone-icon">${zone.icon}</span>
-            <span class="realm-zone-title">${zone.title}</span>
-            <span class="realm-zone-sub">${zone.sub}</span>
-            <span class="realm-zone-kicker">${zone.action}</span>
+          <button class="mode-tile" type="button" data-zone="${key}">
+            <span>${zone.icon}</span>${zone.title}
           </button>`).join("")}
       </div>
-      <div class="realm-mode-panel">
+      <div class="realm-subpanel">
         <div class="realm-mode-panel-head"><b id="realm-panel-title"></b><span id="realm-panel-sub"></span></div>
-        <div class="realm-mode-grid">
+        <div class="mode-row realm-mode-row">
           ${Object.entries(modes).map(([key, mode]) => `
-            <button class="realm-mode-card" type="button" data-mode="${key}">
-              <span class="realm-mode-icon">${mode.icon}</span>
-              <strong>${mode.title}</strong>
-              <small>${mode.short}</small>
+            <button class="mode-tile" type="button" data-mode="${key}">
+              <img class="mode-art" src="${art(modeArts[key])}" alt="">${mode.title}
             </button>`).join("")}
         </div>
         <div class="realm-mode-desc" id="realm-mode-desc"></div>
-      </div>
-      <div class="lobby-diff">AI 难度
-        <button data-d="easy">简单</button>
-        <button data-d="normal" class="sel">普通</button>
-        <button data-d="hard">困难</button>
+        <div class="lobby-diff">AI 难度
+          <button data-d="easy">简单</button>
+          <button data-d="normal" class="sel">普通</button>
+          <button data-d="hard">困难</button>
+        </div>
       </div>
       <button class="play-btn" id="lobby-start"><span class="pb-icon">▶</span> 进入训练</button>
       <div class="tool-row">
-        <button class="tool-btn" id="m-workshop" title="源块锻造">✦</button>
-        <button class="tool-btn" id="m-tutorial" title="源界教程">📜</button>
-        <button class="tool-btn" id="m-settings" title="系统设置">⚙</button>
+        <button class="tool-btn" id="m-workshop" title="源块锻造">⚒️</button>
+        <button class="tool-btn" id="m-tutorial" title="源界教程">📖</button>
+        <button class="tool-btn" id="m-settings" title="系统设置">⚙️</button>
       </div>`;
 
     x.append(wrap);
@@ -3099,14 +3081,15 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
     const start = document.getElementById("lobby-start");
     const panelTitle = document.getElementById("realm-panel-title");
     const panelSub = document.getElementById("realm-panel-sub");
-    const modeGrid = wrap.querySelector(".realm-mode-grid");
+    const modeGrid = wrap.querySelector(".realm-mode-row");
     const desc = document.getElementById("realm-mode-desc");
 
     const renderSelection = () => {
-      wrap.querySelectorAll(".realm-zone-card").forEach((button) => {
+      wrap.classList.toggle("rift-selected", selectedZone === "rift");
+      wrap.querySelectorAll(".realm-zones .mode-tile").forEach((button) => {
         button.classList.toggle("sel", button.dataset.zone === selectedZone);
       });
-      wrap.querySelectorAll(".realm-mode-card").forEach((button) => {
+      wrap.querySelectorAll(".realm-mode-row .mode-tile").forEach((button) => {
         const disabled = selectedZone === "rift";
         button.classList.toggle("sel", button.dataset.mode === selectedMode);
         button.setAttribute("aria-disabled", String(disabled));
@@ -3125,32 +3108,44 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
           : '<span class="pb-icon">▶</span> 进入训练';
     };
 
-    wrap.querySelectorAll(".realm-zone-card").forEach((button) => {
+    wrap.querySelectorAll(".realm-zones .mode-tile").forEach((button) => {
       button.addEventListener("click", () => {
+        uiFeedback();
         selectedZone = button.dataset.zone;
         if (selectedZone === "rift") selectedMode = "assault";
         renderSelection();
       });
     });
-    wrap.querySelectorAll(".realm-mode-card").forEach((button) => {
+    wrap.querySelectorAll(".realm-mode-row .mode-tile").forEach((button) => {
       button.addEventListener("click", () => {
+        if (selectedZone === "rift") return;
+        uiFeedback();
         selectedMode = button.dataset.mode;
         renderSelection();
       });
     });
     start.onclick = () => {
+      uiFeedback("primary");
       if (selectedZone === "training") return runTraining(selectedMode);
       if (selectedZone === "battlefield") return runBattlefield(selectedMode);
       return runRift();
     };
-    document.getElementById("m-workshop").onclick = () => qe();
+    document.getElementById("m-workshop").onclick = () => {
+      uiFeedback();
+      qe();
+    };
     document.getElementById("m-settings").onclick = () => {
+      uiFeedback();
       if (typeof L === "function") L();
       new we(x, I);
     };
-    document.getElementById("m-tutorial").onclick = () => Bt();
+    document.getElementById("m-tutorial").onclick = () => {
+      uiFeedback();
+      Bt();
+    };
     wrap.querySelectorAll(".lobby-diff button").forEach((button) => {
       button.onclick = () => {
+        uiFeedback();
         At = button.dataset.d;
         wrap.querySelectorAll(".lobby-diff button").forEach((node) => node.classList.remove("sel"));
         button.classList.add("sel");
