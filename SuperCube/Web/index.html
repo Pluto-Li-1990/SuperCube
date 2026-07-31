@@ -3258,5 +3258,62 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   }
 })();
 </script>
+<script>
+(() => {
+  if (typeof Ie !== "undefined" && !Ie.prototype.__supercubeManualLoadoutStart) {
+    Ie.prototype.startCountdown = function manualLoadoutStart() {
+      if (this.timer) clearInterval(this.timer);
+      this.timer = undefined;
+      this.remain = 0;
+      const timer = this.root?.querySelector?.("#lo-timer") ?? document.getElementById("lo-timer");
+      if (timer) timer.textContent = "准备";
+    };
+    Ie.prototype.__supercubeManualLoadoutStart = true;
+  }
+
+  if (typeof Ee !== "undefined" && !Ee.prototype.__supercubeScoreFirstResult) {
+    Ee.prototype.showResult = function scoreFirstShowResult() {
+      if (this.resultShown) return;
+      this.resultShown = true;
+      if (this.matchTimer) clearInterval(this.matchTimer);
+
+      const mine = this.game.players.A.score;
+      const ai = this.game.players.B.score;
+      const won = mine > ai;
+      const title = won ? "🏆 你赢了！" : ai > mine ? "AI 获胜" : "平局";
+      if (typeof f !== "undefined") f.gameOver?.(won);
+
+      const overlay = document.createElement("div");
+      overlay.className = "result-overlay";
+      overlay.innerHTML = `<div class="result-card">
+      <h2>${title}</h2>
+      <p>你 ${mine} : ${ai} AI</p>
+      <button id="r-again">再来一局</button>
+      <button id="r-exit">返回大厅</button>
+    </div>`;
+      this.root.append(overlay);
+
+      document.getElementById("r-again").onclick = () => {
+        overlay.remove();
+        this.game = new U({
+          mode: this.opts.mode,
+          aiPlayer: "B",
+          customBagA: this.opts.playerBag,
+          customBagB: this.opts.aiBag,
+        });
+        this.busy = false;
+        this.log = [];
+        this.resultShown = false;
+        if (this.opts.mode === "time-attack") this.startMatchTimer();
+      };
+      document.getElementById("r-exit").onclick = () => {
+        cancelAnimationFrame(this.raf);
+        this.opts.onExit();
+      };
+    };
+    Ee.prototype.__supercubeScoreFirstResult = true;
+  }
+})();
+</script>
 </body>
 </html>
