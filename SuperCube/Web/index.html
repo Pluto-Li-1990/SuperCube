@@ -3214,5 +3214,49 @@ var It=Object.defineProperty;var Pt=(i,t,e)=>t in i?It(i,t,{enumerable:!0,config
   }
 })();
 </script>
+<script>
+(() => {
+  if (globalThis.__supercubeLoadoutCancelGuard) return;
+  globalThis.__supercubeLoadoutCancelGuard = true;
+  if (typeof Ie === "undefined") return;
+
+  const active = { value: null };
+  const originalBuild = Ie.prototype.build;
+  const originalConfirm = Ie.prototype.confirm;
+  const originalCleanup = Ie.prototype.cleanup;
+
+  Ie.prototype.build = function guardedLoadoutBuild(...args) {
+    if (active.value && active.value !== this) active.value.cleanup?.();
+    active.value = this;
+    this.__loadoutClosed = false;
+    const result = originalBuild.apply(this, args);
+    this.__loadoutEl = this.root?.querySelector?.(".loadout-wrap") ?? null;
+    return result;
+  };
+
+  Ie.prototype.confirm = function guardedLoadoutConfirm(...args) {
+    if (this.__loadoutClosed || active.value !== this || !this.__loadoutEl?.isConnected) {
+      this.cleanup?.();
+      return;
+    }
+    return originalConfirm.apply(this, args);
+  };
+
+  Ie.prototype.cleanup = function guardedLoadoutCleanup(...args) {
+    this.__loadoutClosed = true;
+    if (active.value === this) active.value = null;
+    return originalCleanup.apply(this, args);
+  };
+
+  if (typeof L === "function" && !L.__loadoutGuarded) {
+    const originalClear = L;
+    L = function guardedClear(...args) {
+      active.value?.cleanup?.();
+      return originalClear.apply(this, args);
+    };
+    L.__loadoutGuarded = true;
+  }
+})();
+</script>
 </body>
 </html>
